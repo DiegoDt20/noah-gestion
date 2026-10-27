@@ -32,12 +32,23 @@ Este sistema centraliza todo en una sola aplicación web para que la empresa pue
 
 ## 2. Metodología
 
-Se trabaja con **Scrum**. El jefe de prácticas actúa como Product Owner y Scrum Master. El trabajo se divide en sprints; cada sprint entrega requerimientos funcionales (RF) que ya se pueden probar.
+Se trabaja con **Scrum**. Los roles de Product Owner y Scrum Master se indican en el informe. El trabajo se divide en sprints; cada sprint entrega requerimientos funcionales (RF) que ya se pueden probar.
 
 ### Plan de sprints
 
-| Sprint | Requerimientos | Estado |
-|---|---|---|
+Se trabaja en **4 sprints de 3 semanas** (ciclo PPP2, semanas 17 a 32 del plan de trabajo).
+
+| Sprint | Requerimientos | Semanas | Estado |
+|---|---|---|---|
+| **Sprint 1** · Acceso, roles y usuarios | RF-01 Inicio de sesión · RF-02 Control de acceso por roles · RF-03 Gestión de usuarios y roles | 17 a 19 | ✅ Terminado |
+| **Sprint 2** · Proyectos y tareas | RF-04 Registro de proyectos · RF-05 Asignación de roles y tareas · RF-06 Estado de las tareas | 20 a 22 | ✅ Terminado |
+| **Sprint 3** · Reportes, panel y alertas | RF-07 a RF-11: registro de avance, recordatorios, consulta de reportes, panel de seguimiento y alertas | 23 a 25 | ⏳ Planificado |
+| **Sprint 4** · Documentos, IA y KPI | RF-12 a RF-16: procesamiento de documentos, contraste con IA, asistente, cálculo de KPI y exportación | 26 a 28 | ⏳ Planificado |
+| **Cierre** | Pruebas de aceptación, despliegue en producción y documentación final | 29 a 32 | ⏳ Planificado |
+
+Al final de cada sprint se hace la revisión con el jefe de prácticas y la retrospectiva. Avance actual: **6 de 16 requerimientos (40 %)**.
+
+---|---|---|
 | **Sprint 1** | RF-01 Inicio de sesión · RF-02 Control de acceso por roles · RF-03 Gestión de usuarios y roles | ✅ Terminado |
 | **Sprint 2** | RF-04 Registro de proyectos · RF-05 Asignación de roles y tareas · RF-06 Estado de las tareas | ✅ Terminado |
 | **Sprint 3** | Reportes de avance por tarea y panel de seguimiento para jefe y gerencia | ⏳ Planificado |
