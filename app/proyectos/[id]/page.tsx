@@ -70,7 +70,7 @@ export default async function Proyecto({ params }: { params: Promise<{ id: strin
             <div className="overflow-x-auto"><table className="tabla">
               <thead><tr><th className="th">Tarea</th><th className="th">Responsable</th><th className="th">Rol</th><th className="th">Entrega</th><th className="th">Estado</th></tr></thead>
               <tbody>{tareas.map(t => (
-                <tr key={t.id_tarea}><td className="td font-medium">{t.titulo}</td><td className="td">{t.responsable}</td><td className="td text-suave">{t.rol_asignado}</td><td className="td">{fmt(t.fecha_entrega)}</td>
+                <tr key={t.id_tarea}><td className="td font-medium">{t.titulo}{(s.rol !== "colaborador" || t.id_responsable === s.id) && <Link href={`/tareas/${t.id_tarea}/reportes`} className="enlace mt-1 block text-xs">Ver reportes de avance</Link>}</td><td className="td">{t.responsable}</td><td className="td text-suave">{t.rol_asignado}</td><td className="td">{fmt(t.fecha_entrega)}</td>
                   <td className="td"><EstadoSelect id={t.id_tarea} estado={t.estado} editable={s.rol === "administrador" || t.id_responsable === s.id || (s.rol === "jefe_area" && p.id_jefe === s.id)} /></td></tr>))}</tbody></table></div>)}
           {gestiona && (
             <div className="border-t border-linea p-5">

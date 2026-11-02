@@ -83,7 +83,8 @@ CREATE TABLE reporte_avance (
                      CHECK (momento IN ('inicio_dia','fin_dia','cada_3_dias')),
     contenido        TEXT        NOT NULL,
     porcentaje_avance SMALLINT   NOT NULL CHECK (porcentaje_avance BETWEEN 0 AND 100),
-    fecha_hora       TIMESTAMP   NOT NULL DEFAULT NOW()
+    fecha_hora       TIMESTAMP   NOT NULL DEFAULT NOW(),
+    fecha_reporte    DATE        NOT NULL DEFAULT ((CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima')::date)
 );
 
 CREATE TABLE alerta (
@@ -142,6 +143,7 @@ CREATE INDEX idx_tarea_proyecto      ON tarea(id_proyecto);
 CREATE INDEX idx_tarea_responsable   ON tarea(id_responsable, estado);
 CREATE INDEX idx_tarea_entrega       ON tarea(fecha_entrega) WHERE estado <> 'entregada';
 CREATE INDEX idx_reporte_tarea       ON reporte_avance(id_tarea, fecha_hora);
+CREATE UNIQUE INDEX idx_reporte_momento_dia ON reporte_avance(id_tarea,id_usuario,fecha_reporte,momento);
 CREATE INDEX idx_alerta_abiertas     ON alerta(id_tarea) WHERE estado = 'abierta';
 CREATE INDEX idx_documento_proyecto  ON documento(id_proyecto);
 

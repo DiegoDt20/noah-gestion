@@ -42,11 +42,11 @@ Se trabaja en **4 sprints de 3 semanas** (ciclo PPP2, semanas 17 a 32 del plan d
 |---|---|---|---|
 | **Sprint 1** · Acceso, roles y usuarios | RF-01 Inicio de sesión · RF-02 Control de acceso por roles · RF-03 Gestión de usuarios y roles | 17 a 19 | ✅ Terminado |
 | **Sprint 2** · Proyectos y tareas | RF-04 Registro de proyectos · RF-05 Asignación de roles y tareas · RF-06 Estado de las tareas | 20 a 22 | ✅ Terminado |
-| **Sprint 3** · Reportes, panel y alertas | RF-07 a RF-11: registro de avance, recordatorios, consulta de reportes, panel de seguimiento y alertas | 23 a 25 | ⏳ Planificado |
+| **Sprint 3** · Reportes, panel y alertas | RF-07 a RF-11: registro de avance, recordatorios, consulta de reportes, panel de seguimiento y alertas | 23 a 25 | En curso: RF-07 implementado |
 | **Sprint 4** · Documentos, IA y KPI | RF-12 a RF-16: procesamiento de documentos, contraste con IA, asistente, cálculo de KPI y exportación | 26 a 28 | ⏳ Planificado |
 | **Cierre** | Pruebas de aceptación, despliegue en producción y documentación final | 29 a 32 | ⏳ Planificado |
 
-Al final de cada sprint se hace la revisión con el jefe de prácticas y la retrospectiva. Avance actual: **6 de 16 requerimientos (40 %)**.
+Al final de cada sprint se hace la revisión con el jefe de prácticas y la retrospectiva. Avance actual: **7 de 16 requerimientos (43,75 %)**.
 
 ---|---|---|
 | **Sprint 1** | RF-01 Inicio de sesión · RF-02 Control de acceso por roles · RF-03 Gestión de usuarios y roles | ✅ Terminado |
@@ -57,7 +57,7 @@ Al final de cada sprint se hace la revisión con el jefe de prácticas y la retr
 | **Sprint 6** | Asistente de IA: consultas y observaciones sobre el avance del proyecto | ⏳ Planificado |
 | **Cierre** | Pruebas, ajustes, validación con la empresa y puesta en producción | ⏳ Planificado |
 
-> Los sprints 3 en adelante se ajustan al cronograma y a la lista de requerimientos del informe final. Avance actual: **6 de 16 requerimientos (40 %)**.
+> Los sprints 3 en adelante se ajustan al cronograma y a la lista de requerimientos del informe final. Avance actual: **7 de 16 requerimientos (43,75 %)**.
 
 ---
 
@@ -71,6 +71,7 @@ Al final de cada sprint se hace la revisión con el jefe de prácticas y la retr
 | **RF-04** Registro de proyectos | El jefe de área registra proyectos con nombre, descripción y fechas. Valida que la entrega no sea anterior al inicio. | `/proyectos` · `POST /api/proyectos` |
 | **RF-05** Asignación de roles y tareas | El jefe suma colaboradores al proyecto con su rol y les asigna tareas con fecha dentro del rango del proyecto. | `/proyectos/[id]` |
 | **RF-06** Estado de las tareas | El responsable cambia el estado de su tarea y queda registrado quién lo cambió, cuándo y de qué estado a cuál. | `/mis-tareas` · `PATCH /api/tareas/[id]/estado` |
+| **RF-07** Reportes de avance | El colaborador registra inicio y cierre diarios y un reporte adicional cada 3 días, con detalle y porcentaje de avance. | `/tareas/[id]/reportes` · `/api/tareas/[id]/reportes` |
 
 ### Permisos por rol
 
@@ -163,3 +164,40 @@ Contraseña de todos: `Demo2026!` (cámbiala antes de usar el sistema en serio).
 ## 8. Autor
 
 Diego – Prácticas Preprofesionales II, NOAH TECH SOLUTIONS S.A.C., 2026.
+
+
+## RF-07 · Reportes de avance
+
+El colaborador entra en **Mis tareas → Registrar reporte** y registra, por tarea, un reporte de inicio y otro de cierre cada día, además de uno adicional cada tres días. Cada reporte guarda detalle, porcentaje acumulado entero de 0 a 100, autor, fecha y hora de Lima. El cierre requiere el inicio del mismo día. No se permiten duplicados del mismo tipo por tarea, usuario y fecha, incluso con envíos simultáneos.
+
+El primer reporte adicional se habilita tres días después de la creación de la tarea; los siguientes, tres días después del último reporte adicional del responsable actual. Un reporte pendiente puede registrarse después de su fecha. La interfaz muestra la siguiente fecha y los reportes diarios pendientes. No se envían notificaciones automáticas en este RF. Cada reporte actualiza el estado de la tarea: 0 % pendiente, 1–99 % en curso y 100 % entregada. Si cambia el estado, se guarda el autor y la transición en el historial dentro de la misma transacción. El último reporte puede reabrir una tarea si declara un avance menor a 100 %.
+
+El colaborador solo registra y consulta reportes de sus tareas. El jefe consulta los de sus proyectos; gerencia y administración pueden consultarlos desde **Proyectos → Ver reportes de avance**. Los reportes se conservan como historial y no se editan desde la interfaz.
+
+Para actualizar una base existente **sin borrar datos**:
+
+```bash
+npm run db:migrate:rf07
+```
+
+En una base nueva, `npm run db:setup` ya incluye las columnas e índices del RF-07 (este comando reinicializa los datos).
+
+Validación de integración con el servidor local activo y los usuarios demo disponibles:
+
+```bash
+node --env-file=.env.local scripts/test-rf07.mjs
+```
+
+La prueba crea proyectos y tareas temporales y elimina exclusivamente esos registros al terminar; comprueba permisos, porcentajes, duplicados concurrentes, cambio de día, frecuencia de tres días, persistencia y la página de historial.
+
+## Panel de inicio
+
+El inicio muestra indicadores, distribución de estados de tareas, avance por proyecto y porcentajes del último reporte. En la cuenta de colaborador, las cifras y el gráfico circular corresponden a sus propias tareas; las barras de proyectos incluyen las tareas de todo el equipo. El avance de cada proyecto se calcula como tareas entregadas / total de tareas. Los datos se consultan al abrir o recargar la página.
+
+Si una base existente ya tiene reportes previos a la actualización automática de estados, puede sincronizarse una vez con:
+
+```bash
+node --env-file=.env.local scripts/sync-report-status.mjs
+```
+
+Este comando conserva los reportes y registra en el historial los cambios de estado que aplica según el último reporte del responsable actual.

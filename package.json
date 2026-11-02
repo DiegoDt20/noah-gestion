@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "db:setup": "node --env-file=.env.local scripts/setup-db.mjs"
+    "db:setup": "node --env-file=.env.local scripts/setup-db.mjs",
+    "db:migrate:rf07": "node --env-file=.env.local scripts/migrate-rf07.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
