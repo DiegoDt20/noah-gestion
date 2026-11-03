@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { sesionActual } from "@/lib/auth";
 import Navbar from "@/components/Navbar";
+import { RecordatoriosProvider } from "@/components/RecordatoriosContext";
 
 export const metadata: Metadata = { title: "NOAH TECH – Seguimiento de proyectos y tareas" };
 
@@ -11,12 +12,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="es">
       <body>
         {s ? (
-          <>
+          <RecordatoriosProvider>
             <Navbar s={s} />
-            <main className="px-5 py-7 lg:pl-[17rem] lg:pr-10 lg:py-9">
-              <div className="mx-auto max-w-6xl">{children}</div>
+            <main id="contenido" className="app-main">
+              <div className="mx-auto max-w-7xl">{children}</div>
             </main>
-          </>
+          </RecordatoriosProvider>
         ) : children}
       </body>
     </html>

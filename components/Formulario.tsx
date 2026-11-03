@@ -12,15 +12,16 @@ export default function Formulario({ url, metodo = "POST", boton, children, alOk
     e.preventDefault(); setErr(""); setOk(false); setCargando(true);
     const f = e.currentTarget;
     const datos = Object.fromEntries(new FormData(f).entries());
-    const r = await fetch(url, { method: metodo, headers: { "Content-Type": "application/json" }, body: JSON.stringify(datos) });
-    const d = await r.json().catch(() => ({}));
-    setCargando(false);
-    if (!r.ok) { setErr(d.error || "No se pudo guardar"); return; }
-    f.reset(); setOk(true); alOk?.(d); router.refresh();
-    setTimeout(() => setOk(false), 3000);
+    try {
+      const r = await fetch(url, { method: metodo, headers: { "Content-Type": "application/json" }, body: JSON.stringify(datos) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setErr(d.error || "No se pudo guardar. Inténtalo de nuevo."); return; }
+      f.reset(); setOk(true); alOk?.(d); router.refresh();
+    } catch { setErr("No se pudo conectar. Tus datos siguen en el formulario; vuelve a intentarlo."); }
+    finally { setCargando(false); }
   }
   return (
-    <form onSubmit={enviar} className="space-y-3">
+    <form aria-busy={cargando} onSubmit={enviar} className="space-y-3">
       {children}
       {err && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}
       {ok && <p role="status" className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Guardado correctamente.</p>}

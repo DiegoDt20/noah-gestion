@@ -1,0 +1,36 @@
+import Link from "next/link";
+import Form from "next/form";
+import { redirect } from "next/navigation";
+import { sesionActual } from "@/lib/auth";
+import { consultarReportes, filtrosReportes, opcionesReportes, urlReportes, TAMANO_PAGINA } from "@/lib/consulta-reportes";
+import { MOMENTO_TEXTO } from "@/lib/reportes";
+import Cabecera from "@/components/Cabecera";
+import Icono from "@/components/Icono";
+export const dynamic = "force-dynamic";
+export default async function Reportes({ searchParams }: { searchParams: Promise<Record<string,string|string[]|undefined>> }) {
+  const s = await sesionActual(); if (!s) redirect("/login");
+  const params = new URLSearchParams();
+  for (const [k,v] of Object.entries(await searchParams)) { if (Array.isArray(v)) v.forEach(x=>params.append(k,x)); else if (v!==undefined) params.append(k,v); }
+  let filtros;
+  try { filtros = filtrosReportes(params); }
+  catch (e) { return <><Cabecera titulo="Consulta de reportes"/><div className="panel p-6"><p role="alert" className="text-sm text-red-700">{e instanceof Error ? e.message : "Filtros no válidos"}</p><Link href="/reportes" className="btn-suave mt-4">Restablecer consulta</Link></div></>; }
+  const [resultado,opciones] = await Promise.all([consultarReportes(s,filtros),opcionesReportes(s)]);
+  const activo = Boolean(filtros.proyecto||filtros.autor||filtros.tipo||filtros.desde||filtros.hasta||filtros.q);
+  return <div className="space-y-5"><Cabecera titulo="Consulta de reportes" subtitulo={s.rol==="colaborador" ? "Consulta el historial de las tareas que tienes asignadas." : s.rol==="jefe_area" ? "Revisa los reportes de los proyectos que diriges." : "Consulta los reportes de avance de la organización."}><Link href="/recordatorios" className="btn-suave gap-2"><Icono nombre="campana"/>Ver pendientes</Link></Cabecera>
+    <section className="panel"><div className="panel-cab"><h2 className="panel-tit">Encuentra un reporte</h2><span className="text-xs text-suave">Fechas de reporte en Lima</span></div><Form action="/reportes" className="report-filters" key={params.toString()}>
+      <label className="report-search"><span className="etiqueta">Buscar por tarea, proyecto, autor o detalle</span><input name="q" type="search" maxLength={150} defaultValue={filtros.q||""} className="campo" placeholder="Escribe lo que necesitas consultar…"/></label>
+      <label><span className="etiqueta">Proyecto</span><select name="proyecto" defaultValue={filtros.proyecto||""} className="campo"><option value="">Todos los proyectos</option>{opciones.proyectos.map(p=><option value={p.id} key={p.id}>{p.nombre}</option>)}</select></label>
+      <label><span className="etiqueta">Autor</span><select name="autor" defaultValue={filtros.autor||""} className="campo"><option value="">Todos los autores</option>{opciones.autores.map(a=><option value={a.id} key={a.id}>{a.nombre}</option>)}</select></label>
+      <label><span className="etiqueta">Tipo de reporte</span><select name="tipo" defaultValue={filtros.tipo||""} className="campo"><option value="">Todos los tipos</option>{Object.entries(MOMENTO_TEXTO).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
+      <label><span className="etiqueta">Desde (inclusive)</span><input type="date" name="desde" defaultValue={filtros.desde||""} className="campo"/></label>
+      <label><span className="etiqueta">Hasta (inclusive)</span><input type="date" name="hasta" defaultValue={filtros.hasta||""} className="campo"/></label>
+      <label><span className="etiqueta">Orden</span><select name="orden" defaultValue={filtros.orden} className="campo"><option value="recientes">Más recientes primero</option><option value="antiguos">Más antiguos primero</option></select></label>
+      <div className="report-filter-actions"><button type="submit" className="btn gap-2"><Icono nombre="buscar"/>Aplicar filtros</button><Link href="/reportes" className="btn-suave">Restablecer</Link></div>
+    </Form></section>
+    <dl className="report-query-summary"><div><dt>Reportes encontrados</dt><dd>{resultado.total}</dd></div><div><dt>Tareas con reportes</dt><dd>{resultado.tareas}</dd></div><div><dt>Autores</dt><dd>{resultado.autores}</dd></div></dl>
+    <section className="panel overflow-hidden" aria-labelledby="resultados-reportes"><div className="panel-cab"><div><h2 className="panel-tit" id="resultados-reportes">Historial consultado</h2><p className="chart-description">{activo ? "Resultados con los filtros seleccionados." : "Historial dentro de tu alcance de consulta."} Los reportes se conservan como registros de solo lectura.</p></div><span role="status" className="text-xs text-suave">{resultado.reportes.length ? `${(resultado.pagina-1)*TAMANO_PAGINA+1}–${(resultado.pagina-1)*TAMANO_PAGINA+resultado.reportes.length} de ${resultado.total}` : `0 de ${resultado.total}`}</span></div>
+      {!resultado.reportes.length ? <div className="empty-state"><Icono nombre="tareas" className="mx-auto mb-3 text-acento"/><h3 className="font-semibold">{resultado.total ? "Esta página no tiene resultados" : activo ? "No hay reportes con estos filtros" : "Todavía no hay reportes para consultar"}</h3><p className="mt-2 text-sm text-suave">{resultado.total ? "Vuelve a la primera página de esta consulta." : activo ? "Amplía las fechas o cambia los criterios de búsqueda." : "Los reportes aparecerán cuando los colaboradores registren sus avances."}</p><Link className="btn-suave mt-4" href={resultado.total ? urlReportes(filtros) : "/reportes"}>{resultado.total ? "Ir a la primera página" : "Restablecer consulta"}</Link></div> : <ol className="consult-report-list">{resultado.reportes.map(r=><li key={r.id_reporte}><div className="consult-report-top"><div><span className="chip bg-marca/5 text-marca">{MOMENTO_TEXTO[r.momento]}</span><h3 className="mt-3 text-base font-semibold">{r.titulo}</h3><Link href={`/proyectos/${r.id_proyecto}`} className="enlace mt-1 inline-block text-xs">{r.proyecto}</Link></div><div className="consult-report-percentage"><strong>{r.porcentaje_avance}%</strong><span>avance reportado</span></div></div><p className="mt-3 text-xs text-suave">{r.fecha_reporte.split("-").reverse().join("/")} · {r.hora} · {r.autor}</p><p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6">{r.contenido.length>280 ? r.contenido.slice(0,280)+"…" : r.contenido}</p>{r.contenido.length>280&&<details className="report-full-text"><summary>Leer detalle completo</summary><p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6">{r.contenido}</p></details>}<div className="mt-4 flex justify-end"><Link href={`/tareas/${r.id_tarea}/reportes#reporte-${r.id_reporte}`} className="enlace inline-flex min-h-11 items-center gap-2 text-xs">Abrir historial de la tarea<Icono nombre="flecha"/></Link></div></li>)}</ol>}
+      {resultado.paginas>1&&resultado.pagina<=resultado.paginas&&<nav className="report-pagination" aria-label="Páginas de reportes">{resultado.pagina>1?<Link className="btn-suave" href={urlReportes(filtros,resultado.pagina-1)}>Anterior</Link>:<span/>}<span className="text-xs text-suave">Página {resultado.pagina} de {resultado.paginas}</span>{resultado.pagina<resultado.paginas?<Link className="btn-suave" href={urlReportes(filtros,resultado.pagina+1)}>Siguiente</Link>:<span/>}</nav>}
+    </section>
+  </div>;
+}

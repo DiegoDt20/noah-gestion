@@ -7,7 +7,12 @@
     "build": "next build",
     "start": "next start",
     "db:setup": "node --env-file=.env.local scripts/setup-db.mjs",
-    "db:migrate:rf07": "node --env-file=.env.local scripts/migrate-rf07.mjs"
+    "db:migrate:rf07": "node --env-file=.env.local scripts/migrate-rf07.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:rf07": "node --env-file=.env.local scripts/test-rf07.mjs",
+    "db:migrate:rf08": "node --env-file=.env.local scripts/migrate-rf08.mjs",
+    "test:rf08": "node --env-file=.env.local scripts/test-rf08.mjs",
+    "test:rf09": "node --env-file=.env.local scripts/test-rf09.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -26,5 +31,10 @@
     "postcss": "^8.5.32",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "$postcss"
+    }
   }
 }

@@ -1,31 +1,10 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
 export default function FilaUsuario({ u, roles, areas }: { u: any; roles: any[]; areas: any[] }) {
-  const router = useRouter();
-  const [rol, setRol] = useState(String(u.id_rol));
-  const [area, setArea] = useState(u.id_area ? String(u.id_area) : "");
-  const [activo, setActivo] = useState(u.activo as boolean);
-  const [clave, setClave] = useState("");
-  const [msg, setMsg] = useState<{ t: string; ok: boolean } | null>(null);
-  async function guardar() {
-    setMsg(null);
-    const body: any = { id_rol: Number(rol), id_area: area || null, activo };
-    if (clave) body.clave = clave;
-    const r = await fetch(`/api/usuarios/${u.id_usuario}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) { setMsg({ t: d.error || "No se pudo guardar", ok: false }); return; }
-    setClave(""); setMsg({ t: "Guardado", ok: true }); router.refresh();
-  }
-  return (
-    <tr>
-      <td className="td"><div className="font-medium">{u.nombres} {u.apellidos}</div><div className="text-xs text-suave">{u.correo}</div></td>
-      <td className="td"><select value={rol} onChange={e => setRol(e.target.value)} className="campo min-w-36">{roles.map(r => <option key={r.id_rol} value={r.id_rol}>{r.nombre}</option>)}</select></td>
-      <td className="td"><select value={area} onChange={e => setArea(e.target.value)} className="campo min-w-44"><option value="">Sin área</option>{areas.map(a => <option key={a.id_area} value={a.id_area}>{a.nombre}</option>)}</select></td>
-      <td className="td"><input type="checkbox" className="h-4 w-4 accent-marca" checked={activo} onChange={e => setActivo(e.target.checked)} aria-label="Usuario activo" /></td>
-      <td className="td"><input type="password" value={clave} onChange={e => setClave(e.target.value)} placeholder="Sin cambio" className="campo min-w-32" /></td>
-      <td className="td"><button onClick={guardar} className="btn-suave">Guardar</button>{msg && <p className={`mt-1 text-xs ${msg.ok ? "text-emerald-700" : "text-red-600"}`}>{msg.t}</p>}</td>
-    </tr>
-  );
+ const router=useRouter();const [rol,setRol]=useState(String(u.id_rol));const [area,setArea]=useState(u.id_area?String(u.id_area):"");const [activo,setActivo]=useState(Boolean(u.activo));const [clave,setClave]=useState("");const [guardando,setGuardando]=useState(false);const [msg,setMsg]=useState<{t:string;ok:boolean}|null>(null);
+ const modificado=rol!==String(u.id_rol)||area!==(u.id_area?String(u.id_area):"")||activo!==Boolean(u.activo)||Boolean(clave);
+ const nombres:Record<string,string>={administrador:"Administrador",gerencia:"Gerencia",jefe_area:"Jefe de área",colaborador:"Colaborador"};
+ async function guardar(e:React.FormEvent<HTMLFormElement>){e.preventDefault();if(guardando)return;setGuardando(true);setMsg(null);try{const r=await fetch(`/api/usuarios/${u.id_usuario}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id_rol:Number(rol),id_area:area||null,activo,...(clave?{clave}:{})})});const d=await r.json().catch(()=>({}));if(!r.ok){setMsg({t:d.error||"No se pudo guardar",ok:false});return;}setClave("");setMsg({t:"Cambios guardados",ok:true});router.refresh();}catch{setMsg({t:"No se pudo conectar. Conservamos tus cambios para volver a intentarlo.",ok:false});}finally{setGuardando(false);}}
+ return <article className="user-card"><div className="flex items-start gap-3"><span className="person-avatar">{u.nombres[0]}{u.apellidos[0]}</span><div className="min-w-0"><h2 className="font-semibold">{u.nombres} {u.apellidos}</h2><p className="mt-1 break-all text-xs text-suave">{u.correo}</p></div><span className={`chip ml-auto ${u.activo?"bg-emerald-50 text-emerald-800":"bg-slate-100 text-slate-700"}`}>{u.activo?"Activo":"Inactivo"}</span></div><form onSubmit={guardar} className="mt-5 space-y-4" aria-label={`Editar a ${u.nombres} ${u.apellidos}`} aria-busy={guardando}><fieldset disabled={guardando} className="space-y-4"><label className="block"><span className="etiqueta">Rol</span><select value={rol} onChange={e=>setRol(e.target.value)} className="campo">{roles.map(r=><option key={r.id_rol} value={r.id_rol}>{nombres[r.nombre]||r.nombre}</option>)}</select></label><label className="block"><span className="etiqueta">Área</span><select value={area} onChange={e=>setArea(e.target.value)} className="campo"><option value="">Sin área</option>{areas.map(a=><option key={a.id_area} value={a.id_area}>{a.nombre}</option>)}</select></label><details className="password-disclosure"><summary>Restablecer contraseña</summary><label className="mt-3 block"><span className="etiqueta">Nueva contraseña (mínimo 8 caracteres)</span><input type="password" autoComplete="new-password" minLength={8} value={clave} onChange={e=>setClave(e.target.value)} placeholder="Dejar vacío para conservar" className="campo"/></label></details><label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" className="h-4 w-4 accent-marca" checked={activo} onChange={e=>setActivo(e.target.checked)}/>Usuario activo</label><button type="submit" disabled={!modificado||guardando} className="btn w-full">{guardando?"Guardando…":modificado?"Guardar cambios":"Sin cambios"}</button></fieldset>{msg&&<p role={msg.ok?"status":"alert"} className={`text-xs leading-5 ${msg.ok?"text-emerald-800":"text-red-700"}`}>{msg.t}</p>}</form></article>;
 }

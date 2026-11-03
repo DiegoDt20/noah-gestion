@@ -1,67 +1,44 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { ContadorRecordatorios } from "./RecordatoriosContext";
 import type { Sesion } from "@/lib/auth";
+import Icono, { type NombreIcono } from "./Icono";
 
 const ROL: Record<string, string> = { gerencia: "Gerencia", jefe_area: "Jefe de área", colaborador: "Colaborador", administrador: "Administrador" };
-
-const I = {
-  inicio: "M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10",
-  proyectos: "M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z",
-  tareas: "M9 11l3 3 8-8M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9",
-  usuarios: "M16 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M9.5 10a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM21 20v-2a4 4 0 00-3-3.87M16 3.13a3.5 3.5 0 010 6.74",
-};
-
-function Icono({ d }: { d: string }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
-  );
-}
-
 export default function Navbar({ s }: { s: Sesion }) {
   const router = useRouter();
   const ruta = usePathname();
+  const [saliendo, setSaliendo] = useState(false);
+  const [error, setError] = useState("");
   async function salir() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
+    setSaliendo(true); setError("");
+    try {
+      const r = await fetch("/api/auth/logout", { method: "POST" });
+      if (!r.ok) throw new Error();
+      router.push("/login"); router.refresh();
+    } catch { setError("No se pudo cerrar sesión. Inténtalo de nuevo."); setSaliendo(false); }
   }
-  const enlaces = [
-    { href: "/", t: "Inicio", i: I.inicio },
-    { href: "/proyectos", t: "Proyectos", i: I.proyectos },
-    ...(s.rol !== "gerencia" ? [{ href: "/mis-tareas", t: "Mis tareas", i: I.tareas }] : []),
-    ...(s.rol === "administrador" ? [{ href: "/usuarios", t: "Usuarios y roles", i: I.usuarios }] : []),
+  const enlaces: { href: string; t: string; i: NombreIcono }[] = [
+    { href: "/", t: "Inicio", i: "inicio" },
+    { href: "/proyectos", t: "Proyectos", i: "proyectos" },
+    ...(s.rol !== "gerencia" ? [{ href: "/mis-tareas", t: "Mis tareas", i: "tareas" as const }] : []),
+    { href: "/reportes", t: "Reportes", i: "reportes" },
+    { href: "/recordatorios", t: "Recordatorios", i: "campana" },
+    ...(s.rol === "administrador" ? [{ href: "/usuarios", t: "Usuarios y roles", i: "usuarios" as const }] : []),
   ];
-  const activo = (h: string) => (h === "/" ? ruta === "/" : ruta.startsWith(h));
+  const activo = (h: string) => h === "/" ? ruta === "/" : ruta.startsWith(h);
   const iniciales = s.nombre.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
-  return (
-    <aside className="bg-marca-oscuro text-white lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col">
-      <div className="flex items-center gap-3 px-5 py-4 lg:py-6">
-        <div className="grid h-9 w-9 place-items-center rounded-lg bg-acento text-sm font-bold">NT</div>
-        <div className="leading-tight">
-          <div className="text-sm font-bold tracking-wide">NOAH TECH</div>
-          <div className="text-xs text-white/60">Seguimiento de proyectos</div>
-        </div>
-      </div>
-      <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-1 lg:flex-col lg:overflow-visible lg:pb-0">
-        {enlaces.map(e => (
-          <Link key={e.href} href={e.href}
-            className={`flex items-center gap-3 whitespace-nowrap rounded-md px-3 py-2.5 text-sm transition ${activo(e.href) ? "bg-white/12 font-semibold text-white" : "text-white/70 hover:bg-white/8 hover:text-white"}`}>
-            <Icono d={e.i} />{e.t}
-          </Link>
-        ))}
-      </nav>
-      <div className="hidden border-t border-white/10 p-4 lg:block">
-        <div className="mb-3 flex items-center gap-3">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15 text-xs font-semibold">{iniciales}</div>
-          <div className="min-w-0 leading-tight">
-            <div className="truncate text-sm font-medium">{s.nombre}</div>
-            <div className="text-xs text-white/60">{ROL[s.rol]}</div>
-          </div>
-        </div>
-        <button onClick={salir} className="w-full rounded-md border border-white/25 px-3 py-2 text-sm text-white/85 transition hover:bg-white/10">Cerrar sesión</button>
-      </div>
-      <button onClick={salir} className="absolute right-4 top-4 rounded-md border border-white/25 px-3 py-1.5 text-xs lg:hidden">Salir</button>
+  return <>
+    <a className="saltar" href="#contenido">Ir al contenido</a>
+    <aside className="app-nav">
+      <div className="nav-marca"><Link href="/" className="flex min-w-0 items-center gap-3" aria-label="NOAH TECH, inicio"><span className="marca-simbolo">N<span className="text-teal-300">.</span></span><span><strong className="block text-sm tracking-wide">NOAH TECH</strong><span className="text-xs text-slate-300">Gestión de proyectos</span></span></Link><button onClick={salir} disabled={saliendo} className="nav-salir nav-salir-mobile" aria-label="Cerrar sesión"><Icono nombre="salir" /></button></div>
+      <nav aria-label="Navegación principal" className="nav-enlaces">{enlaces.map(e => <Link key={e.href} href={e.href} aria-current={activo(e.href) ? "page" : undefined} className={`nav-enlace ${activo(e.href) ? "seleccionado" : ""}`}><Icono nombre={e.i} /><span>{e.t}</span>{e.href === "/recordatorios" && <ContadorRecordatorios/>}{activo(e.href) && <span className="ml-auto hidden h-1.5 w-1.5 rounded-full bg-teal-300 lg:block" />}</Link>)}</nav>
+      <div className="mt-auto hidden px-6 pb-6 lg:block"><p className="text-sm font-medium text-slate-200">Un equipo. Un mismo rumbo.</p><p className="mt-2 text-xs leading-5 text-slate-300">Proyectos, tareas y avances en un solo lugar.</p></div>
+      <div className="nav-perfil"><div className="flex min-w-0 items-center gap-3"><span className="avatar">{iniciales}</span><div className="min-w-0"><p className="truncate text-sm font-medium">{s.nombre}</p><p className="mt-0.5 text-xs text-slate-300">{ROL[s.rol]}</p></div></div><button onClick={salir} disabled={saliendo} className="nav-salir mt-4 w-full"><Icono nombre="salir" />{saliendo ? "Cerrando sesión…" : "Cerrar sesión"}</button></div>
+      {error && <p role="alert" className="px-4 pb-4 text-sm text-red-200">{error}</p>}
     </aside>
-  );
+    <header className="app-topbar"><div className="flex min-w-0 items-center gap-2 text-sm"><span className="hidden text-suave sm:inline">Espacio de trabajo</span><span className="hidden text-slate-300 sm:inline">/</span><span className="truncate font-medium">{enlaces.find(e => activo(e.href))?.t || "Detalle de tarea"}</span></div><span className="flex items-center gap-2 text-xs text-suave"><span className="h-1.5 w-1.5 rounded-full bg-acento" />{ROL[s.rol]}</span></header>
+  </>;
 }

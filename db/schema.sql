@@ -4,7 +4,7 @@
 -- =====================================================================
 
 DROP TABLE IF EXISTS consulta_asistente, observacion_ia, fragmento_documento, documento,
-                     alerta, reporte_avance, historial_estado, tarea,
+                     recordatorio_lectura, alerta, reporte_avance, historial_estado, tarea,
                      proyecto_miembro, proyecto, usuario, area, rol CASCADE;
 
 -- ---------- Seguridad y organización ----------
@@ -146,6 +146,18 @@ CREATE INDEX idx_reporte_tarea       ON reporte_avance(id_tarea, fecha_hora);
 CREATE UNIQUE INDEX idx_reporte_momento_dia ON reporte_avance(id_tarea,id_usuario,fecha_reporte,momento);
 CREATE INDEX idx_alerta_abiertas     ON alerta(id_tarea) WHERE estado = 'abierta';
 CREATE INDEX idx_documento_proyecto  ON documento(id_proyecto);
+
+-- RF-08: la condición pendiente se calcula con los reportes actuales.
+-- Solo se persiste la lectura, por persona y ocurrencia; no se borra información.
+CREATE TABLE IF NOT EXISTS recordatorio_lectura (
+    id_usuario INTEGER NOT NULL REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    id_tarea INTEGER NOT NULL REFERENCES tarea(id_tarea) ON DELETE CASCADE,
+    id_responsable INTEGER NOT NULL REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    momento VARCHAR(12) NOT NULL CHECK (momento IN ('inicio_dia','fin_dia','cada_3_dias')),
+    fecha DATE NOT NULL,
+    leido_en TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id_usuario,id_tarea,id_responsable,momento,fecha)
+);
 
 -- ---------- Datos iniciales ----------
 INSERT INTO rol (id_rol, nombre, descripcion) VALUES
