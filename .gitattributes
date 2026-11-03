@@ -1,0 +1,3 @@
+# Conserva los bytes y evita tratar la estructura interna de archivos como texto.
+scripts/fixtures/**/*.pdf binary
+scripts/fixtures/**/*.docx binary
