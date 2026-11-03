@@ -43,7 +43,7 @@ Se trabaja en **4 sprints de 3 semanas** (ciclo PPP2, semanas 17 a 32 del plan d
 | **Sprint 1** · Acceso, roles y usuarios | RF-01 Inicio de sesión · RF-02 Control de acceso por roles · RF-03 Gestión de usuarios y roles | 17 a 19 | ✅ Terminado |
 | **Sprint 2** · Proyectos y tareas | RF-04 Registro de proyectos · RF-05 Asignación de roles y tareas · RF-06 Estado de las tareas | 20 a 22 | ✅ Terminado |
 | **Sprint 3** · Reportes, panel y alertas | RF-07 a RF-11: registro de avance, recordatorios, consulta de reportes, panel de seguimiento y alertas | 23 a 25 | ✅ Terminado: RF-07 a RF-11 implementados |
-| **Sprint 4** · Documentos, IA y KPI | RF-12 a RF-16: procesamiento de documentos, contraste con IA, asistente, cálculo de KPI y exportación | 26 a 28 | ⏳ Planificado |
+| **Sprint 4** · Documentos, IA y KPI | RF-12 a RF-16: procesamiento de documentos, contraste con IA, asistente, cálculo de KPI y exportación | 26 a 28 | 🚧 RF-12: biblioteca de texto implementada; PDF/Word y RF-13 a RF-16 pendientes |
 | **Cierre** | Pruebas de aceptación, despliegue en producción y documentación final | 29 a 32 | ⏳ Planificado |
 
 Al final de cada sprint se hace la revisión con el jefe de prácticas y la retrospectiva. Avance actual: **11 de 16 requerimientos (68,75 %)**.
@@ -65,6 +65,7 @@ Al final de cada sprint se hace la revisión con el jefe de prácticas y la retr
 | **RF-09** Consulta de reportes | Consulta centralizada con proyecto, autor, tipo, fechas, búsqueda y paginación de solo lectura. | `/reportes` · `GET /api/reportes` |
 | **RF-10** Panel de seguimiento | Indicadores, gráficos, agenda y carga por responsable con alcance por proyecto y rol. | `/` · `GET /api/seguimiento` |
 | **RF-11** Alertas de seguimiento | Detecta retrasos y falta de reportes o actividad; registra atención y resolución conservando el historial. | `/alertas` · `/api/alertas` |
+| **RF-12 (primera entrega)** Documentos | Carga de texto UTF-8 y Markdown, fragmentación, consulta y descarga por proyecto. PDF/Word pendientes. | `/documentos` · `/api/documentos` |
 
 ### Permisos por rol
 
@@ -338,3 +339,23 @@ TEST_BASE_URL=http://127.0.0.1:3002 npm run test:rf11
 ```
 
 Las pruebas crean y eliminan exclusivamente tareas, proyectos y usuarios temporales. Comprueban límites de tres días, ausencia/antigüedad de reportes, tareas entregadas/futuras, cuentas inactivas, permisos de los cuatro roles, concurrencia, atención con auditoría, resolución, reaparición, reasignación, registros legados y paginación.
+
+
+## RF-12 · Biblioteca de documentos (primera entrega)
+
+**Documentos** permite seleccionar un proyecto, incorporar archivos `.txt` y `.md` UTF-8 de hasta 1 MB, buscar los últimos 100 registros por nombre/autor, leer fragmentos ordenados y descargar el original. El jefe incorpora documentos de sus proyectos; administración, de todos. Gerencia solo consulta, y los colaboradores consultan bibliotecas de proyectos donde son miembros. Cada operación comprueba el rol y la actividad actual de la cuenta en la base.
+
+El original se guarda en PostgreSQL, junto a su hash SHA-256, autor, fecha de Lima y cantidad de caracteres. Un archivo idéntico dentro del mismo proyecto responde 409, incluso con cargas simultáneas. Los fragmentos contienen hasta 2000 puntos de código Unicode, conservan el orden y se guardan en la misma transacción que el original. No se pierde el documento si falla el procesamiento: la operación completa se revierte. La descarga se entrega como adjunto; el texto se presenta sin interpretar HTML o Markdown. Los registros históricos se conservan y solo ofrecen descarga si tienen original almacenado.
+
+Esta entrega prepara el contenido para RF-13/RF-14; no genera embeddings ni respuestas de IA. **PDF, Word, OCR, eliminación/versionado y almacenamiento externo quedan pendientes.** RF-12 aún no se cuenta como requerimiento completo, a falta de definir y cubrir los formatos finales. El límite de 1 MB y los formatos actuales aparecen en la interfaz.
+
+Migración aditiva y repetible para bases existentes:
+
+```bash
+npm run db:migrate:rf12
+TEST_BASE_URL=http://127.0.0.1:3002 npm run test:rf12
+```
+
+No uses `db:setup` para actualizar datos existentes. Para una base nueva, el esquema completo ya incluye las columnas.
+
+API: `GET /api/documentos?proyecto=ID`; `POST /api/documentos` multipart con `proyecto` y `archivo`; `GET /api/documentos/ID` para texto fragmentado y `GET /api/documentos/ID?descargar=1` para el original. Sesión obligatoria, consultas parametrizadas y respuestas sin caché compartida. La carga limita el cuerpo antes de analizar multipart, también si no hay Content-Length. La prueba utiliza proyectos temporales y limpia exclusivamente sus registros.

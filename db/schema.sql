@@ -113,6 +113,10 @@ CREATE TABLE documento (
     subido_por       INTEGER     NOT NULL REFERENCES usuario(id_usuario),
     nombre           VARCHAR(150) NOT NULL,
     ruta_archivo     VARCHAR(255) NOT NULL,
+    contenido_original BYTEA,
+    sha256 VARCHAR(64),
+    tipo_archivo VARCHAR(80),
+    caracteres INTEGER,
     fecha_subida     TIMESTAMP   NOT NULL DEFAULT NOW()
 );
 
@@ -171,3 +175,5 @@ INSERT INTO rol (id_rol, nombre, descripcion) VALUES
  (2,'jefe_area','Asigna roles y tareas y atiende las alertas de su área'),
  (3,'colaborador','Actualiza el estado de sus tareas y registra reportes de avance'),
  (4,'administrador','Gestiona usuarios, roles y parámetros del sistema');
+
+CREATE UNIQUE INDEX idx_documento_contenido ON documento(id_proyecto,sha256) WHERE sha256 IS NOT NULL;

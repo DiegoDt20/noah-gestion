@@ -25,6 +25,7 @@ export default function Navbar({ s }: { s: Sesion }) {
     { href: "/", t: "Inicio", i: "inicio" },
     { href: "/proyectos", t: "Proyectos", i: "proyectos" },
     ...(s.rol !== "gerencia" ? [{ href: "/mis-tareas", t: "Mis tareas", i: "tareas" as const }] : []),
+    { href: "/documentos", t: "Documentos", i: "reportes" },
     { href: "/reportes", t: "Reportes", i: "reportes" },
     { href: "/alertas", t: "Alertas", i: "alerta" },
     { href: "/recordatorios", t: "Recordatorios", i: "campana" },
