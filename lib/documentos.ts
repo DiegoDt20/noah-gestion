@@ -1,3 +1,4 @@
+import { extraerDocumento, ErrorExtraccion } from "./extraer-documento";
 import { createHash } from "node:crypto";
 import { pool, query } from "./db";
 import type { Sesion } from "./auth";
@@ -13,17 +14,25 @@ export async function listarDocumentos(s:Sesion,proyecto:number){
 }
 export async function guardarDocumento(s:Sesion,proyecto:number,archivo:File){
  if(!['administrador','jefe_area'].includes(s.rol))throw new ErrorDocumento("Solo el jefe o administrador puede incorporar documentos.",403);
- if(!archivo.size||archivo.size>MAX_ARCHIVO)throw new ErrorDocumento("Selecciona un archivo de texto de hasta 1 MB.",413);
+ if(!archivo.size||archivo.size>MAX_ARCHIVO)throw new ErrorDocumento("Selecciona un archivo de hasta 1 MB.",413);
  const nombre=archivo.name.normalize('NFC');
- if(nombre.length>150||/[\/\\\x00-\x1f\x7f]/.test(nombre)||! /\.(txt|md)$/i.test(nombre))throw new ErrorDocumento("Usa un nombre de hasta 150 caracteres y extensión .txt o .md.");
+ if(nombre.length>150||/[\/\\\x00-\x1f\x7f]/.test(nombre)||! /\.(txt|md|pdf|docx)$/i.test(nombre))throw new ErrorDocumento("Usa un nombre de hasta 150 caracteres y extensión .txt, .md, .pdf o .docx.");
+ // Comprueba el alcance antes de consumir recursos de extracción.
+ const proyectos=await proyectosDocumentos(s);if(!proyectos.some(p=>p.id_proyecto===proyecto))throw new ErrorDocumento("Proyecto no disponible.",404);
  const original=Buffer.from(await archivo.arrayBuffer());let texto:string;
- try{texto=new TextDecoder('utf-8',{fatal:true}).decode(original);}catch{throw new ErrorDocumento("El archivo debe estar codificado en UTF-8.");}
- if(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(texto))throw new ErrorDocumento("El archivo contiene datos binarios, no texto válido.");
+ const extension=nombre.split('.').pop()!.toLowerCase();
+ const tipos:Record<string,string>={txt:'text/plain',md:'text/markdown',pdf:'application/pdf',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'};
+ if(extension==='pdf'||extension==='docx'){
+   try{texto=await extraerDocumento(original,extension);}catch(e){if(e instanceof ErrorExtraccion)throw new ErrorDocumento(e.message,e.status);throw e;}
+ }else{
+   try{texto=new TextDecoder('utf-8',{fatal:true}).decode(original);}catch{throw new ErrorDocumento("El archivo de texto debe estar codificado en UTF-8.");}
+   if(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(texto))throw new ErrorDocumento("El archivo contiene datos binarios, no texto válido.");
+ }
  texto=texto.replace(/\r\n?/g,'\n').trim();if(!texto)throw new ErrorDocumento("El documento no contiene texto.");
  const puntos=Array.from(texto);const fragmentos:string[]=[];for(let i=0;i<puntos.length;i+=2000)fragmentos.push(puntos.slice(i,i+2000).join(''));
  const c=await pool.connect();try{await c.query('BEGIN');
  const permiso=await c.query(`SELECT p.id_proyecto FROM proyecto p WHERE p.id_proyecto=$3 AND ${alcanceDocumento} FOR SHARE OF p`,[s.id,s.rol,proyecto]);if(!permiso.rowCount)throw new ErrorDocumento("Proyecto no disponible.",404);
- const d=await c.query(`INSERT INTO documento(id_proyecto,subido_por,nombre,ruta_archivo,contenido_original,sha256,tipo_archivo,caracteres,fecha_subida) VALUES($1,$2,$3,'almacenado_en_bd',$4,$5,$6,$7,CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima') ON CONFLICT (id_proyecto,sha256) WHERE sha256 IS NOT NULL DO NOTHING RETURNING id_documento`,[proyecto,s.id,nombre,original,createHash('sha256').update(original).digest('hex'),nombre.toLowerCase().endsWith('.md')?'text/markdown':'text/plain',puntos.length]);
+ const d=await c.query(`INSERT INTO documento(id_proyecto,subido_por,nombre,ruta_archivo,contenido_original,sha256,tipo_archivo,caracteres,fecha_subida) VALUES($1,$2,$3,'almacenado_en_bd',$4,$5,$6,$7,CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima') ON CONFLICT (id_proyecto,sha256) WHERE sha256 IS NOT NULL DO NOTHING RETURNING id_documento`,[proyecto,s.id,nombre,original,createHash('sha256').update(original).digest('hex'),tipos[extension],puntos.length]);
  if(!d.rowCount)throw new ErrorDocumento("Este archivo ya está registrado en el proyecto.",409);
  const id=d.rows[0].id_documento;
  await c.query('INSERT INTO fragmento_documento(id_documento,orden,texto) SELECT $1,ordinality::int,valor FROM unnest($2::text[]) WITH ORDINALITY AS x(valor,ordinality)',[id,fragmentos]);await c.query('COMMIT');return {id_documento:id,fragmentos:fragmentos.length,caracteres:puntos.length};

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import pg from 'pg';
+import { readFile } from 'node:fs/promises';
 const base=process.env.TEST_BASE_URL||'http://127.0.0.1:3000';
 const db=new pg.Client({connectionString:process.env.DATABASE_URL,ssl:process.env.DATABASE_SSL==='false'?false:{rejectUnauthorized:false}});
 const cookies={};const proyectos=[];let checks=0;
@@ -20,12 +21,29 @@ try{await db.connect();const users=(await db.query('SELECT id_usuario,correo FRO
  for(const rol of ['admin','jefe','gerencia','carlos']){const l=await req(rol,'/api/documentos?proyecto='+p);eq(l.status,200);eq((await l.json()).length,1);}
  eq((await req('maria','/api/documentos?proyecto='+p)).status,404);eq((await req('maria','/api/documentos/'+d.id_documento)).status,404);eq((await req('maria',`/api/documentos/${d.id_documento}?descargar=1`)).status,404);
  eq((await upload('admin',p,texto,'otro.md')).status,409,'Duplicado por contenido');
- eq((await upload('admin',p,'   \n')).status,400);eq((await upload('admin',p,'texto','archivo.pdf')).status,400);eq((await upload('admin',p,'texto','../secreto.txt')).status,400);eq((await upload('admin',p,new Uint8Array([0xff,0xfe]))).status,400);eq((await upload('admin',p,'abc\0def')).status,400);eq((await upload('admin',p,'x'.repeat(1024*1024+1))).status,413);
+ eq((await upload('admin',p,'   \n')).status,400);eq((await upload('admin',p,'texto','archivo.pdf')).status,422);eq((await upload('admin',p,'texto','../secreto.txt')).status,400);eq((await upload('admin',p,new Uint8Array([0xff,0xfe]))).status,400);eq((await upload('admin',p,'abc\0def')).status,400);eq((await upload('admin',p,'x'.repeat(1024*1024+1))).status,413);
  const simultaneos=await Promise.all([upload('admin',p,'Documento concurrente'),upload('admin',p,'Documento concurrente')]);eq(simultaneos.map(r=>r.status).sort(),[201,409]);
  for(const qs of ['','proyecto=0','proyecto=abc','proyecto=2147483648',`proyecto=${p}&proyecto=${p}`,`proyecto=${p}&otro=1`])eq((await req('admin','/api/documentos?'+qs)).status,400);
  eq((await req('admin','/api/documentos/abc')).status,400);eq((await req('admin',`/api/documentos/${d.id_documento}?descargar=0`)).status,400);
  const estado=(await db.query('SELECT activo FROM usuario WHERE id_usuario=$1',[uid('carlos')])).rows[0].activo;
  try{await db.query('UPDATE usuario SET activo=false WHERE id_usuario=$1',[uid('carlos')]);eq((await req('carlos','/api/documentos/'+d.id_documento)).status,404);}finally{await db.query('UPDATE usuario SET activo=$1 WHERE id_usuario=$2',[estado,uid('carlos')]);}
+
+ const fixture=async nombre=>readFile(new URL('./fixtures/rf12/'+nombre,import.meta.url));
+ for(const [nombre,esperado] of [['requisitos.pdf','Requisitos del proyecto NOAH'],['acuerdos.docx','Validación de información: árbol, diseño y colaboración.']]){
+   const original=await fixture(nombre);const carga=await upload('jefe',p,original,nombre);eq(carga.status,201,'Carga real '+nombre);const doc=await carga.json();
+   const lectura=await (await req('carlos','/api/documentos/'+doc.id_documento)).json();const texto=lectura.fragmentos.map(f=>f.texto).join('');eq(texto.includes(esperado),true,'Texto extraído '+nombre);
+   if(nombre.endsWith('.pdf'))eq(texto.indexOf('pagina 1')<texto.indexOf('pagina 2'),true,'Orden de páginas');
+   else eq(texto.includes('Responsable')&&texto.includes('Equipo NOAH'),true,'Texto de tablas Word');
+   const descarga=await req('carlos',`/api/documentos/${doc.id_documento}?descargar=1`);eq(Buffer.from(await descarga.arrayBuffer()),original,'Original binario intacto');
+   eq((await upload('admin',p,original,nombre)).status,409,'Duplicado binario');
+   eq((await req('maria','/api/documentos/'+doc.id_documento)).status,404,'Documento binario fuera de alcance');
+ }
+ for(const [nombre,mensaje] of [['sin-texto.pdf','OCR'],['protegido.pdf','protegido'],['demasiadas-paginas.pdf','100 páginas'],['exceso-descomprimido.docx','límite']]){
+   const respuesta=await upload('admin',p,await fixture(nombre),nombre);eq(respuesta.status,422,'Rechazo '+nombre);eq((await respuesta.json()).error.includes(mensaje),true,'Mensaje recuperable '+nombre);
+ }
+ eq((await upload('admin',p,'Word falso','falso.docx')).status,422);
+ eq((await upload('admin',p,'Word antiguo','antiguo.doc')).status,400);
+ eq((await db.query('SELECT count(*)::int n FROM documento WHERE id_proyecto=$1',[p])).rows[0].n,4,'Sin registros parciales por fallos de extracción');
  eq((await req('admin','/documentos')).status,200);
  console.log(`RF-12: ${checks} verificaciones correctas.`);
 }finally{for(const p of proyectos)await db.query('DELETE FROM proyecto WHERE id_proyecto=$1',[p]);await db.end();}
