@@ -42,11 +42,11 @@ Se trabaja en **4 sprints de 3 semanas** (ciclo PPP2, semanas 17 a 32 del plan d
 |---|---|---|---|
 | **Sprint 1** · Acceso, roles y usuarios | RF-01 Inicio de sesión · RF-02 Control de acceso por roles · RF-03 Gestión de usuarios y roles | 17 a 19 | ✅ Terminado |
 | **Sprint 2** · Proyectos y tareas | RF-04 Registro de proyectos · RF-05 Asignación de roles y tareas · RF-06 Estado de las tareas | 20 a 22 | ✅ Terminado |
-| **Sprint 3** · Reportes, panel y alertas | RF-07 a RF-11: registro de avance, recordatorios, consulta de reportes, panel de seguimiento y alertas | 23 a 25 | En curso: RF-07, RF-08 y RF-09 implementados |
+| **Sprint 3** · Reportes, panel y alertas | RF-07 a RF-11: registro de avance, recordatorios, consulta de reportes, panel de seguimiento y alertas | 23 a 25 | ✅ Terminado: RF-07 a RF-11 implementados |
 | **Sprint 4** · Documentos, IA y KPI | RF-12 a RF-16: procesamiento de documentos, contraste con IA, asistente, cálculo de KPI y exportación | 26 a 28 | ⏳ Planificado |
 | **Cierre** | Pruebas de aceptación, despliegue en producción y documentación final | 29 a 32 | ⏳ Planificado |
 
-Al final de cada sprint se hace la revisión con el jefe de prácticas y la retrospectiva. Avance actual: **9 de 16 requerimientos (56,25 %)**.
+Al final de cada sprint se hace la revisión con el jefe de prácticas y la retrospectiva. Avance actual: **11 de 16 requerimientos (68,75 %)**.
 
 ---
 
@@ -63,6 +63,8 @@ Al final de cada sprint se hace la revisión con el jefe de prácticas y la retr
 | **RF-07** Reportes de avance | El colaborador registra inicio y cierre diarios y un reporte adicional cada 3 días, con detalle y porcentaje de avance. | `/tareas/[id]/reportes` · `/api/tareas/[id]/reportes` |
 | **RF-08** Recordatorios de reportes | Consulta recordatorios de inicio, cierre y reporte adicional pendientes, con lectura individual y actualización automática. | `/recordatorios` · `/api/recordatorios` |
 | **RF-09** Consulta de reportes | Consulta centralizada con proyecto, autor, tipo, fechas, búsqueda y paginación de solo lectura. | `/reportes` · `GET /api/reportes` |
+| **RF-10** Panel de seguimiento | Indicadores, gráficos, agenda y carga por responsable con alcance por proyecto y rol. | `/` · `GET /api/seguimiento` |
+| **RF-11** Alertas de seguimiento | Detecta retrasos y falta de reportes o actividad; registra atención y resolución conservando el historial. | `/alertas` · `/api/alertas` |
 
 ### Permisos por rol
 
@@ -197,7 +199,7 @@ La prueba crea proyectos y tareas temporales y elimina exclusivamente esos regis
 
 ## Panel de inicio
 
-El inicio muestra indicadores, distribución de estados de tareas, avance por proyecto y porcentajes del último reporte. En la cuenta de colaborador, las cifras y el gráfico circular corresponden a sus propias tareas; las barras de proyectos incluyen las tareas de todo el equipo. El avance de cada proyecto se calcula como tareas entregadas / total de tareas. Los datos se consultan al abrir o recargar la página. El panel destaca la primera entrega pendiente por fecha y permite buscar tareas por nombre o proyecto y filtrarlas por estado o vencimiento. En celular, las tareas se presentan en una lista adaptable; en escritorio, en una tabla. La búsqueda se aplica sobre las tareas autorizadas para el rol actual y muestra hasta ocho resultados por vez, con la opción de ver más.
+El inicio muestra indicadores, distribución de estados de tareas, avance por proyecto y porcentajes del último reporte. En la cuenta de colaborador, las cifras y el gráfico circular corresponden a sus propias tareas; las barras de proyectos incluyen las tareas de todo el equipo. El avance de cada proyecto se calcula como tareas entregadas / total de tareas. Los datos se consultan al abrir y se actualizan al volver a la aplicación, cada minuto mientras esté visible o al pulsar Actualizar. El panel destaca la primera entrega pendiente por fecha y permite buscar tareas por nombre o proyecto y filtrarlas por estado o vencimiento. En celular, las tareas se presentan en una lista adaptable; en escritorio, en una tabla. La búsqueda se aplica sobre las tareas autorizadas para el rol actual y muestra hasta ocho resultados por vez, con la opción de ver más.
 
 Si una base existente ya tiene reportes previos a la actualización automática de estados, puede sincronizarse una vez con:
 
@@ -211,7 +213,7 @@ Este comando conserva los reportes y registra en el historial los cambios de est
 
 El panel incluye un gráfico circular de estados que filtra la lista de tareas y una comparativa por proyecto con las medidas Avance (tareas entregadas / total) y Carga (cantidad de tareas por estado). Seleccionar un proyecto muestra su fecha de entrega y un enlace a su detalle. La vista de tareas alterna entre Lista y Tablero; el tablero agrupa por estado y permite consultar los reportes, sin arrastrar ni cambiar estados desde esta vista. La agenda muestra las cuatro primeras entregas pendientes por fecha. Los gráficos utilizan los datos actuales autorizados para cada rol, sin series históricas simuladas.
 
-El selector de proyecto limita las gráficas y tareas visibles. El gráfico de plazos agrupa exclusivamente tareas sin entregar (vencidas, hoy, 1–7 días, 8–14 días y 15 días o más); seleccionar una columna filtra el gráfico de estados y la lista. La comparativa de avance conserva el total acumulado del proyecto, como indica su leyenda. Los indicadores superiores y la agenda mantienen la vista general. Actualizar consulta de nuevo los datos y muestra la hora de la consulta en Lima. Exportar CSV descarga todas las tareas que coinciden con proyecto, plazo, estado y búsqueda, independientemente de la paginación; no representa la exportación integral de KPI del RF-16.
+El selector de proyecto limita las gráficas y tareas visibles. El gráfico de plazos agrupa exclusivamente tareas sin entregar (vencidas, hoy, 1–7 días, 8–14 días y 15 días o más); seleccionar una columna filtra el gráfico de estados y la lista. La comparativa de avance conserva el total acumulado del proyecto, como indica su leyenda. Los indicadores superiores y la agenda siguen el proyecto seleccionado desde RF-10; no cambian con el filtro de plazo. Actualizar consulta de nuevo los datos y muestra la hora de la consulta en Lima. Exportar CSV descarga todas las tareas que coinciden con proyecto, plazo, estado y búsqueda, independientemente de la paginación; no representa la exportación integral de KPI del RF-16.
 
 ### Interfaz de los módulos
 
@@ -237,7 +239,7 @@ Reglas:
 - La fecha se calcula en PostgreSQL con `America/Lima`. Los reportes diarios corresponden a hoy, sin generar una notificación por cada día anterior.
 - Se actualizan al abrir/cambiar de pantalla, volver a la aplicación y cada 60 segundos mientras esté visible. Guardar un reporte o cambiar el estado actualiza el contador de inmediato. No hay envío de correo, push ni avisos con la aplicación cerrada; esos canales y sus horarios no están definidos en este repositorio.
 
-Los pendientes se derivan de las tareas y reportes actuales. Solo se guarda la lectura en `recordatorio_lectura`, con una clave única por lector, tarea, responsable, tipo y fecha; la concurrencia no genera duplicados. No se usa la tabla `alerta`, reservada para las alertas de seguimiento de los siguientes RF.
+Los pendientes se derivan de las tareas y reportes actuales. Solo se guarda la lectura en `recordatorio_lectura`, con una clave única por lector, tarea, responsable, tipo y fecha; la concurrencia no genera duplicados. Los recordatorios no usan la tabla `alerta`; las situaciones de seguimiento se gestionan por separado en RF-11.
 
 Para una base existente, sin borrar datos:
 
@@ -277,3 +279,62 @@ TEST_BASE_URL=http://127.0.0.1:3002 npm run test:rf09
 ```
 
 Crea reportes y proyectos temporales y los elimina al finalizar. Comprueba los cuatro roles, historial de responsables anteriores, filtros combinados, búsqueda literal, fechas, conteos, orden estable, paginación y recuperación de errores.
+
+## RF-10 · Panel de seguimiento
+
+Se formaliza el panel de Inicio como una consulta consistente por rol y proyecto. La pantalla y `GET /api/seguimiento` utilizan la misma consulta: proyectos, conteos del equipo y últimos reportes se obtienen en una sola sentencia de PostgreSQL. No requiere migración.
+
+- Administración y gerencia consultan la organización; el jefe, sus proyectos; el colaborador, sus tareas dentro de los proyectos en los que es miembro. La API verifica también que la cuenta esté activa y conserve su rol.
+- Seleccionar un proyecto actualiza los indicadores superiores, la próxima entrega, la agenda, la carga por responsable y los gráficos. Los filtros de plazo/estado afinan los gráficos y la lista de tareas; el resumen superior sigue representando el proyecto completo y lo indica expresamente.
+- Los accesos Ver tareas, Ver entregadas y Ver vencidas ajustan el filtro y llevan al listado. Ver vencidas retira un filtro de plazo previo para no ocultar retrasos.
+- Los porcentajes de entrega se calculan como tareas entregadas / total de tareas. En colaboradores, los indicadores de tareas son personales; la comparativa de proyectos sigue incluyendo al equipo. Un proyecto sin tareas tiene 0 % y no cuenta como completado.
+- Vencida significa fecha anterior al día de Lima y estado distinto de entregada; las que vencen hoy no cuentan como vencidas. El gráfico de plazos separa hoy, 1–7 días, 8–14 días y 15 días o más.
+- El avance reportado es el último reporte del responsable actual, con desempate por ID. Sin reporte se conserva como ausencia de información, sin convertirlo en 0 %. Los registros del responsable anterior no sustituyen su avance.
+- La carga por responsable muestra sus tareas, entregas, vencidas y tareas sin reporte dentro del mismo alcance de los indicadores. La agenda presenta las primeras cuatro entregas pendientes; el listado pone pendientes antes de entregadas y ordena por fecha dentro de cada grupo.
+- Los datos se actualizan al abrir, pulsar Actualizar, volver a la aplicación y cada 60 segundos mientras esté visible. Se conservan los filtros; si desaparece el proyecto seleccionado, se vuelve al alcance general autorizado. No se generan series históricas ni KPI avanzados del RF-16 a partir de datos incompletos.
+
+API: `GET /api/seguimiento` admite `proyecto` opcional y devuelve la fecha de Lima, hora de consulta, proyectos, tareas, resumen y carga por responsable. Los proyectos inexistentes o fuera de alcance responden 404; identificadores inválidos o parámetros duplicados responden 400. Requiere sesión y no utiliza caché compartida.
+
+```bash
+TEST_BASE_URL=http://127.0.0.1:3002 npm run test:rf10
+```
+
+Las pruebas crean y eliminan proyectos y tareas temporales. Verifican los cuatro roles, conteos exactos, alcance personal frente al de equipo, ausencia de reportes, responsables anteriores, desempate de reportes, fechas de Lima, proyectos vacíos y actualización de indicadores.
+
+## RF-11 · Alertas de seguimiento
+
+**Alertas** en el menú muestra un contador de abiertas, filtros por proyecto/tipo/estado, historial paginado de 20 registros y acceso a los reportes de la tarea. El jefe de área puede atender las de sus proyectos; administración puede atender todas. Colaboradores y gerencia solo consultan. El colaborador accede a las tareas propias en proyectos donde es miembro. Se verifica que la cuenta conserve su rol y esté activa.
+
+Reglas iniciales, al no existir umbrales configurados en este repositorio:
+
+- **Tarea vencida:** fecha de entrega anterior a hoy y tarea no entregada. Se conserva este riesgo aunque el responsable esté inactivo.
+- **Sin reporte:** tarea con al menos tres días desde su creación, no entregada, sin ningún reporte del responsable actual. Solo se exige a colaboradores activos. Un cambio de estado no sustituye el reporte.
+- **Sin actualizar:** tarea no entregada con reportes del responsable actual, pero con al menos tres días sin actividad. La actividad es la fecha más reciente entre creación, actualización del estado y último reporte. Solo se aplica a colaboradores activos; se excluye cuando el problema es ausencia completa de reportes.
+- Se utilizan días calendario de Lima, con el límite de tres días inclusive. No se generan alertas para tareas creadas en una fecha futura ni entregadas. Las fechas de actividad se interpretan según la convención local de los TIMESTAMP existentes; los nuevos cambios de estado se guardan explícitamente en Lima.
+
+La revisión ocurre al consultar o actualizar Alertas y al actualizar el contador del menú: al abrir/cambiar de pantalla, volver a la aplicación y cada 60 segundos mientras esté visible. No es un servicio de correo, push ni un proceso que siga ejecutándose con la aplicación cerrada. Los cambios se detectan durante estas revisiones; la fecha de resolución registrada corresponde al momento de detección.
+
+Ciclo e historial:
+
+- **Abierta:** condición vigente sin acción registrada.
+- **Atendida:** jefe/administrador registró una acción obligatoria de hasta 250 caracteres. Quedan guardados autor y hora de Lima. La tarea no se entrega ni se modifica por atender una alerta; su condición puede seguir vigente y no genera una alerta repetida por cada consulta.
+- **Resuelta automáticamente:** la condición de una alerta abierta dejó de cumplirse. Se conserva el registro con fecha de detección y motivo. Si ya estaba atendida, conserva ese estado, su acción y su autor, y además marca la condición como resuelta.
+- Si la situación se resuelve y reaparece después de una revisión, se crea otro incidente. Cambiar el responsable o la referencia del riesgo separa incidentes y conserva el responsable al generarse.
+- La sincronización bloquea tareas en orden fijo y utiliza un índice único por tarea/tipo vigente para evitar duplicados concurrentes. La primera atención prevalece; una segunda atención responde 409 sin sobrescribir la acción.
+- Los registros legados no se eliminan: conservan su acción y la ausencia de responsable histórico se muestra como no registrada. Las alertas legadas abiertas se reevalúan al revisar la tarea.
+
+La migración es aditiva y repetible, sin reinicializar datos:
+
+```bash
+npm run db:migrate:rf11
+```
+
+Las bases nuevas creadas con `db:setup` ya incluyen los campos e índices. No uses `db:setup` para actualizar una base existente.
+
+API: `GET /api/alertas` (`proyecto`, `tipo`, `estado`, `pagina`) y `PATCH /api/alertas/[id]` con `{ "accion_tomada": "Descripción de la gestión realizada" }`. Sesión obligatoria; respuestas sin caché compartida. Los conteos respetan proyecto y tipo, y permiten navegar entre estados.
+
+```bash
+TEST_BASE_URL=http://127.0.0.1:3002 npm run test:rf11
+```
+
+Las pruebas crean y eliminan exclusivamente tareas, proyectos y usuarios temporales. Comprueban límites de tres días, ausencia/antigüedad de reportes, tareas entregadas/futuras, cuentas inactivas, permisos de los cuatro roles, concurrencia, atención con auditoría, resolución, reaparición, reasignación, registros legados y paginación.

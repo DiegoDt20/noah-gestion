@@ -20,7 +20,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const permitido = a.s.rol === "administrador" || t.id_responsable === a.s.id || (a.s.rol === "jefe_area" && t.id_jefe === a.s.id);
     if (!permitido) { await c.query("ROLLBACK"); return error("Solo el responsable o el jefe del proyecto puede cambiar el estado", 403); }
     if (t.estado === estado) { await c.query("ROLLBACK"); return error("La tarea ya está en ese estado"); }
-    await c.query("UPDATE tarea SET estado=$1, actualizado_en=NOW() WHERE id_tarea=$2", [estado, id]);
+    await c.query("UPDATE tarea SET estado=$1, actualizado_en=(CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima') WHERE id_tarea=$2", [estado, id]);
     await c.query(
       "INSERT INTO historial_estado (id_tarea,id_usuario,estado_anterior,estado_nuevo) VALUES ($1,$2,$3,$4)",
       [id, a.s.id, t.estado, estado]

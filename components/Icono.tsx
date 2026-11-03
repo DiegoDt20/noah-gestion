@@ -1,5 +1,6 @@
-export type NombreIcono = "inicio" | "proyectos" | "tareas" | "usuarios" | "flecha" | "buscar" | "salir" | "calendario" | "reloj" | "check" | "actualizar" | "descargar" | "campana" | "reportes";
+export type NombreIcono = "inicio" | "proyectos" | "tareas" | "usuarios" | "flecha" | "buscar" | "salir" | "calendario" | "reloj" | "check" | "actualizar" | "descargar" | "campana" | "reportes" | "alerta";
 const paths: Record<NombreIcono, string> = {
+  alerta: "M12 3 2 21h20L12 3zm0 6v5m0 3h.01",
   reportes: "M14 2H5v20h14V7l-5-5zm0 0v6h5M8 12h8M8 16h6",
   campana: "M18 8a6 6 0 00-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4",
   actualizar: "M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0112-2l2 3M4 16l2 3a7 7 0 0012-2",

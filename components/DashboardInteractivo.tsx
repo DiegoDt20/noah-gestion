@@ -14,20 +14,18 @@ const estados = [
   { id: "entregada", nombre: "Entregadas", color: "#0f8b8d" },
 ];
 
-export default function DashboardInteractivo({ tareas, proyectos, mostrarMisTareas, colaborador, actualizadoEn }: {
+export default function DashboardInteractivo({ tareas, proyectos, mostrarMisTareas, colaborador, actualizadoEn, proyectoFiltro, setProyectoFiltro, plazo, setPlazo, filtro, setFiltro }: {
   tareas: TareaResumen[]; proyectos: Proyecto[]; mostrarMisTareas: boolean; colaborador: boolean; actualizadoEn: string;
+  proyectoFiltro:string; setProyectoFiltro:(v:string)=>void; plazo:string; setPlazo:(v:string)=>void; filtro:string; setFiltro:(v:string)=>void;
 }) {
   const router = useRouter();
   const [actualizando, actualizar] = useTransition();
-  const [proyectoFiltro, setProyectoFiltro] = useState("todos");
-  const [plazo, setPlazo] = useState("todas");
   const tareasProyecto = tareas.filter(t => proyectoFiltro === "todos" || t.id_proyecto === Number(proyectoFiltro));
   const tareasEnPlazo = tareasProyecto.filter(t => coincidePlazo(t, plazo));
   const plazos = PLAZOS.map(p => ({ ...p, total: tareasProyecto.filter(t => coincidePlazo(t, p.id)).length }));
   const maxPlazo = Math.max(1, ...plazos.map(p => p.total));
   const proyectosVisibles = proyectos.filter(p => proyectoFiltro === "todos" || p.id_proyecto === Number(proyectoFiltro));
   const limpiar = () => { setProyectoFiltro("todos"); setPlazo("todas"); setFiltro("todas"); };
-  const [filtro, setFiltro] = useState("todas");
   const [modo, setModo] = useState("avance");
   const [seleccionado, setSeleccionado] = useState<number | null>(proyectos[0]?.id_proyecto ?? null);
   const proyecto = proyectosVisibles.find(p => p.id_proyecto === seleccionado) ?? proyectosVisibles[0];

@@ -32,3 +32,32 @@ export function tareasCSV(tareas: TareaPanel[]) {
   ];
   return "\uFEFF" + filas.map(f => f.map(celda).join(";")).join("\r\n");
 }
+
+export type ProyectoPanel = { id_proyecto: number; nombre: string; fecha_entrega: string; total: number; entregadas: number; en_curso: number };
+export type TareaSeguimiento = TareaPanel & { id_responsable: number; responsable: string; fecha_ultimo_reporte: string | null };
+export function resumenPanel(proyectos: ProyectoPanel[], tareas: TareaPanel[]) {
+  const entregadas = tareas.filter(t => t.estado === "entregada").length;
+  return {
+    proyectos: proyectos.length,
+    proyectos_completos: proyectos.filter(p => p.total > 0 && p.total === p.entregadas).length,
+    tareas: tareas.length,
+    pendientes: tareas.filter(t => t.estado === "pendiente").length,
+    en_curso: tareas.filter(t => t.estado === "en_curso").length,
+    entregadas,
+    porcentaje_entregado: tareas.length ? Math.round(entregadas / tareas.length * 100) : 0,
+    vencidas: tareas.filter(t => t.estado !== "entregada" && t.dias < 0).length,
+    vencen_hoy: tareas.filter(t => t.estado !== "entregada" && t.dias === 0).length,
+    proximos_7_dias: tareas.filter(t => t.estado !== "entregada" && t.dias >= 1 && t.dias <= 7).length,
+    sin_reporte: tareas.filter(t => t.avance === null).length,
+  };
+}
+export function responsablesPanel(tareas: TareaSeguimiento[]) {
+  const grupos = new Map<number, { id: number; nombre: string; total: number; entregadas: number; vencidas: number; sin_reporte: number }>();
+  for (const t of tareas) {
+    const r = grupos.get(t.id_responsable) ?? { id: t.id_responsable, nombre: t.responsable, total: 0, entregadas: 0, vencidas: 0, sin_reporte: 0 };
+    r.total++; if (t.estado === "entregada") r.entregadas++; else if (t.dias < 0) r.vencidas++;
+    if (t.avance === null) r.sin_reporte++;
+    grupos.set(t.id_responsable, r);
+  }
+  return [...grupos.values()].sort((a,b) => b.vencidas-a.vencidas || b.total-a.total || a.nombre.localeCompare(b.nombre,"es"));
+}

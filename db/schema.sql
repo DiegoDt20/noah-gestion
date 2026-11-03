@@ -95,10 +95,15 @@ CREATE TABLE alerta (
                      CHECK (tipo IN ('tarea_vencida','sin_actualizar','sin_reporte')),
     mensaje          VARCHAR(250) NOT NULL,
     estado           VARCHAR(10) NOT NULL DEFAULT 'abierta'
-                     CHECK (estado IN ('abierta','atendida')),
+                     CHECK (estado IN ('abierta','atendida','resuelta')),
     accion_tomada    VARCHAR(250),
     generada_en      TIMESTAMP   NOT NULL DEFAULT NOW(),
-    atendida_en      TIMESTAMP
+    atendida_en      TIMESTAMP,
+    referencia       TEXT,
+    id_responsable_generacion INTEGER REFERENCES usuario(id_usuario),
+    vigente          BOOLEAN NOT NULL DEFAULT TRUE,
+    resuelta_en      TIMESTAMP,
+    motivo_resolucion VARCHAR(250)
 );
 
 -- ---------- Documentación y asistente de IA ----------
@@ -144,6 +149,7 @@ CREATE INDEX idx_tarea_responsable   ON tarea(id_responsable, estado);
 CREATE INDEX idx_tarea_entrega       ON tarea(fecha_entrega) WHERE estado <> 'entregada';
 CREATE INDEX idx_reporte_tarea       ON reporte_avance(id_tarea, fecha_hora);
 CREATE UNIQUE INDEX idx_reporte_momento_dia ON reporte_avance(id_tarea,id_usuario,fecha_reporte,momento);
+CREATE UNIQUE INDEX idx_alerta_rf11_vigente ON alerta(id_tarea,tipo) WHERE vigente AND referencia IS NOT NULL;
 CREATE INDEX idx_alerta_abiertas     ON alerta(id_tarea) WHERE estado = 'abierta';
 CREATE INDEX idx_documento_proyecto  ON documento(id_proyecto);
 

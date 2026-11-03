@@ -1,0 +1,20 @@
+"use client";
+import {useEffect,useState,useTransition} from "react";
+import {usePathname,useRouter} from "next/navigation";
+import Icono from "./Icono";
+export function AvisoAlertas(){
+ const ruta=usePathname();const [numero,setNumero]=useState(0);const [error,setError]=useState(false);
+ useEffect(()=>{let solicitud:AbortController|null=null;const cargar=async()=>{if(document.visibilityState!=="visible")return;solicitud?.abort();const control=new AbortController();solicitud=control;try{const r=await fetch("/api/alertas",{cache:"no-store",signal:control.signal});if(!r.ok)throw new Error();const d=await r.json();if(!control.signal.aborted){setNumero(d.conteos.abierta);setError(false);}}catch{if(!control.signal.aborted)setError(true);}};void cargar();const tiempo=window.setInterval(()=>void cargar(),60000);const actualizar=()=>void cargar();window.addEventListener("focus",actualizar);window.addEventListener("noah:alertas",actualizar);document.addEventListener("visibilitychange",actualizar);return()=>{solicitud?.abort();window.clearInterval(tiempo);window.removeEventListener("focus",actualizar);window.removeEventListener("noah:alertas",actualizar);document.removeEventListener("visibilitychange",actualizar);};},[ruta]);
+ return error?<span className="ml-auto text-xs" title="No se pudieron actualizar las alertas" aria-label="No se pudieron actualizar las alertas">!</span>:numero>0?<span className="alert-count" aria-label={`${numero} alertas abiertas`}>{numero>99?"99+":numero}</span>:null;
+}
+export function ActualizarAlertas(){
+ const router=useRouter();const [cargando,actualizar]=useTransition();
+ useEffect(()=>{const refrescar=()=>{if(document.visibilityState==="visible")router.refresh();};const tiempo=window.setInterval(refrescar,60000);window.addEventListener("focus",refrescar);document.addEventListener("visibilitychange",refrescar);return()=>{window.clearInterval(tiempo);window.removeEventListener("focus",refrescar);document.removeEventListener("visibilitychange",refrescar);};},[router]);
+ return <button type="button" className="btn-suave gap-2" disabled={cargando} onClick={()=>actualizar(()=>{router.refresh();window.dispatchEvent(new Event("noah:alertas"));})}><Icono nombre="actualizar"/>{cargando?"Actualizando…":"Actualizar alertas"}</button>;
+}
+export function AtenderAlerta({id}:{id:number}){
+ const router=useRouter();const [guardando,setGuardando]=useState(false);const [error,setError]=useState("");const [ok,setOk]=useState(false);
+ async function enviar(e:React.FormEvent<HTMLFormElement>){e.preventDefault();if(guardando)return;const form=e.currentTarget;const accion=String(new FormData(form).get("accion_tomada")||"");setGuardando(true);setError("");try{const r=await fetch(`/api/alertas/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({accion_tomada:accion})});const d=await r.json().catch(()=>({}));if(!r.ok){setError(d.error||"No se pudo guardar la atención");return;}setOk(true);router.refresh();window.dispatchEvent(new Event("noah:alertas"));}catch{setError("No se pudo conectar. Tu texto permanece para volver a intentarlo.");}finally{setGuardando(false);}}
+ if(ok)return <p role="status" className="mt-4 text-sm text-emerald-800">Atención registrada. La condición seguirá visible mientras continúe.</p>;
+ return <details className="alert-attend"><summary>Registrar atención</summary><form onSubmit={enviar} aria-busy={guardando} className="mt-4 space-y-3"><label className="block"><span className="etiqueta">Acción tomada (obligatoria)</span><textarea name="accion_tomada" required minLength={1} maxLength={250} rows={3} className="campo" placeholder="Describe qué hiciste para gestionar esta situación."/></label><p className="text-xs text-suave">Quedará registrada con tu nombre y la fecha de Lima. No cambia el estado ni la fecha de entrega de la tarea.</p><button className="btn" disabled={guardando}>{guardando?"Guardando…":"Guardar atención"}</button>{error&&<p role="alert" className="text-sm text-red-700">{error}</p>}</form></details>;
+}

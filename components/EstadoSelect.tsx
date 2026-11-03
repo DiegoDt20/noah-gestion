@@ -14,7 +14,7 @@ export default function EstadoSelect({ id, estado, editable }: { id: number; est
     try {
       const r = await fetch(`/api/tareas/${id}/estado`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ estado: nuevoEstado }) });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) setErr(d.error || "No se pudo cambiar el estado"); else { window.dispatchEvent(new Event("noah:recordatorios")); router.refresh(); }
+      if (!r.ok) setErr(d.error || "No se pudo cambiar el estado"); else { window.dispatchEvent(new Event("noah:recordatorios")); window.dispatchEvent(new Event("noah:alertas")); router.refresh(); }
     } catch { setErr("No se pudo conectar. Vuelve a intentarlo."); }
     finally { setCargando(false); }
   }

@@ -27,7 +27,7 @@ export default function ReporteForm({ id, seguimiento, avance }: { id: number; s
       })});
       const d=await r.json().catch(()=>({}));
       if(!r.ok) { setError(d.error || "No se pudo guardar el reporte"); return; }
-      form.reset(); setPorcentaje(Number(datos.get("porcentaje_avance"))); setOk(`Reporte guardado. Estado de la tarea: ${d.estado === "entregada" ? "Entregada" : d.estado === "en_curso" ? "En curso" : "Pendiente"}.`); window.dispatchEvent(new Event("noah:recordatorios")); router.refresh();
+      form.reset(); setPorcentaje(Number(datos.get("porcentaje_avance"))); setOk(`Reporte guardado. Estado de la tarea: ${d.estado === "entregada" ? "Entregada" : d.estado === "en_curso" ? "En curso" : "Pendiente"}.`); window.dispatchEvent(new Event("noah:recordatorios")); window.dispatchEvent(new Event("noah:alertas")); router.refresh();
     } catch { setError("No se pudo conectar. Revisa tu conexión y vuelve a intentarlo."); }
     finally { setGuardando(false); }
   }
