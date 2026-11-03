@@ -363,3 +363,22 @@ TEST_BASE_URL=http://127.0.0.1:3002 npm run test:rf12
 No uses `db:setup` para actualizar datos existentes. Para una base nueva, el esquema completo ya incluye las columnas.
 
 API: `GET /api/documentos?proyecto=ID`; `POST /api/documentos` multipart con `proyecto` y `archivo`; `GET /api/documentos/ID` para texto fragmentado y `GET /api/documentos/ID?descargar=1` para el original. Sesión obligatoria, consultas parametrizadas y respuestas sin caché compartida. La carga limita el cuerpo antes de analizar multipart, también si no hay Content-Length. La prueba utiliza proyectos temporales y limpia exclusivamente sus registros.
+
+
+## Entorno de pruebas en Vercel y Supabase
+
+El proyecto de Vercel `noah-gestion-pruebas` está vinculado al repositorio. La base de Supabase del mismo nombre está separada de los datos locales y de otros proyectos. Los despliegues de pruebas usan **Preview** con Node 24.x.
+
+Variables del servidor: `DATABASE_URL` (Transaction pooler, puerto 6543), `DATABASE_SSL=true` y `JWT_SECRET`. Las credenciales están guardadas como secretos de Preview; no deben ponerse en variables `NEXT_PUBLIC_`, el repositorio ni el chat. Las contraseñas de las cuentas demo locales no se reutilizan en la nube.
+
+Para preparar otra base nueva, `scripts/prepare-cloud.mjs` recibe `CLOUD_PROJECT_REF` y `CLOUD_POOLER_HOST` verificados en el panel Connect de Supabase. Genera SQL inicial sin DROP, cinco cuentas con contraseña aleatoria, un rol de servidor con permisos sobre las tablas del sistema y variables nuevas en `.local/cloud/` con permisos privados. No ejecuta SQL automáticamente ni permite sobrescribir los archivos existentes. Usa exclusivamente una base vacía. **No ejecutes `db:setup` para actualizar una base existente.**
+
+En Supabase, RLS está habilitado y los roles públicos `anon`/`authenticated` no tienen acceso a estas tablas. El rol `noah_web` está destinado exclusivamente al servidor; la autorización de los usuarios del sistema sigue en la API. El rol no tiene permisos para crear roles o bases.
+
+La CLI puede asignar el primer despliegue de un proyecto nuevo a producción. Para desplegar explícitamente pruebas:
+
+```bash
+vercel deploy --environment preview --scope diegodt20s-projects
+```
+
+Las variables de producción se configuran por separado antes de publicar allí. Los Preview mantienen la protección de acceso de Vercel. No se habilitó un dominio personalizado ni servicios de pago. La carga de documentos tiene un plazo máximo de 30 segundos en Vercel, con límite interno de extracción de 15 segundos.

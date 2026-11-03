@@ -1,0 +1,9 @@
+.git
+.local
+.env
+.env.*
+!.env.example
+.next
+node_modules
+scripts/fixtures
+scripts/test-*.mjs

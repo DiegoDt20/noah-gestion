@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requerir } from "@/lib/acceso";
 import { ErrorDocumento, guardarDocumento, idDocumento, listarDocumentos, MAX_ARCHIVO } from "@/lib/documentos";
 export const runtime='nodejs';
+export const maxDuration=30;
 const responder=(v:unknown,status=200)=>NextResponse.json(v,{status,headers:{'Cache-Control':'no-store'}});
 function fallo(e:unknown){if(e instanceof ErrorDocumento)return responder({error:e.message},e.status);console.error('Documentos:',e);return responder({error:'No se pudo procesar el documento. Inténtalo de nuevo.'},503);}
 export async function GET(req:NextRequest){const a=await requerir();if('r'in a)return a.r;try{const p=req.nextUrl.searchParams;if([...p.keys()].some(k=>k!=='proyecto')||p.getAll('proyecto').length!==1)throw new ErrorDocumento('Selecciona un proyecto válido.');return responder(await listarDocumentos(a.s,idDocumento(p.get('proyecto')||'')));}catch(e){return fallo(e);}}

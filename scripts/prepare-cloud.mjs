@@ -1,0 +1,28 @@
+// Prepara una base nueva de pruebas; no ejecuta SQL ni toca la base local.
+import fs from 'node:fs/promises';
+import crypto from 'node:crypto';
+import bcrypt from 'bcryptjs';
+const ref=process.env.CLOUD_PROJECT_REF;
+const host=process.env.CLOUD_POOLER_HOST;
+if(!ref||!host||!/^\w+$/.test(ref)||!/^[-a-z0-9.]+$/.test(host))throw new Error('Faltan CLOUD_PROJECT_REF y CLOUD_POOLER_HOST válidos.');
+await fs.mkdir('.local/cloud',{recursive:true,mode:0o700});
+const dbPassword=crypto.randomBytes(32).toString('base64url');
+const clave=crypto.randomBytes(18).toString('base64url');
+const jwt=crypto.randomBytes(48).toString('base64url');
+const hash=await bcrypt.hash(clave,12);
+const schema=(await fs.readFile('db/schema.sql','utf8')).replace(/DROP TABLE IF EXISTS[\s\S]*?CASCADE;/,'');
+if(/\bDROP\b/i.test(schema))throw new Error('No se permite SQL destructivo en el esquema inicial.');
+const tablas=[...schema.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?(\w+)/g)].map(m=>m[1]);
+let sql='BEGIN;\n'+schema+`\nCREATE ROLE noah_web LOGIN PASSWORD '${dbPassword}' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;\nGRANT CONNECT ON DATABASE postgres TO noah_web;\nGRANT USAGE ON SCHEMA public TO noah_web;\n`;
+for(const tabla of tablas)sql+=`ALTER TABLE public.${tabla} ENABLE ROW LEVEL SECURITY;\nREVOKE ALL ON public.${tabla} FROM anon, authenticated;\nGRANT SELECT,INSERT,UPDATE,DELETE ON public.${tabla} TO noah_web;\nCREATE POLICY noah_servidor ON public.${tabla} TO noah_web USING (true) WITH CHECK (true);\n`;
+sql+='GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO noah_web;\n';
+sql+="INSERT INTO area(id_area,nombre) VALUES(1,'Gerencia General'),(2,'Gerencia Comercial'),(3,'Tecnologías de Información');\n";
+const usuarios=[[4,'Administrador','de Pruebas','admin'],[1,'Gerencia','de Pruebas','gerencia'],[2,'Jefe','de Pruebas','jefe'],[3,'Carlos','de Pruebas','carlos'],[3,'María','de Pruebas','maria']];
+for(const [rol,n,a,co] of usuarios)sql+=`INSERT INTO usuario(id_rol,id_area,nombres,apellidos,correo,clave_hash) VALUES(${rol},3,'${n}','${a}','${co}@noahtech.pe','${hash}');\n`;
+sql+=`INSERT INTO proyecto(id_area,id_jefe,nombre,descripcion,fecha_inicio,fecha_entrega) SELECT 3,id_usuario,'Proyecto de pruebas en línea','Datos sintéticos para validar el sistema',CURRENT_DATE,CURRENT_DATE+30 FROM usuario WHERE correo='jefe@noahtech.pe';\n`;
+sql+=`INSERT INTO proyecto_miembro(id_proyecto,id_usuario,rol_en_proyecto) SELECT p.id_proyecto,u.id_usuario,'Equipo de pruebas' FROM proyecto p CROSS JOIN usuario u WHERE u.correo IN ('jefe@noahtech.pe','carlos@noahtech.pe','maria@noahtech.pe');\n`;
+sql+=`INSERT INTO tarea(id_proyecto,id_responsable,titulo,rol_asignado,fecha_entrega) SELECT p.id_proyecto,u.id_usuario,'Validar carga de documentos y reportes','Pruebas',CURRENT_DATE+7 FROM proyecto p CROSS JOIN usuario u WHERE u.correo='carlos@noahtech.pe';\nCOMMIT;\n`;
+await fs.writeFile('.local/cloud/bootstrap.sql',sql,{mode:0o600,flag:'wx'});
+await fs.writeFile('.local/cloud/vercel.env',`DATABASE_URL=postgresql://noah_web.${ref}:${dbPassword}@${host}:6543/postgres\nDATABASE_SSL=true\nJWT_SECRET=${jwt}\n`,{mode:0o600,flag:'wx'});
+await fs.writeFile('.local/cloud/acceso.txt',`Proyecto Supabase: ${ref}\nCuentas: ${usuarios.map(u=>u[3]+'@noahtech.pe').join(', ')}\nContraseña de pruebas: ${clave}\n`,{mode:0o600,flag:'wx'});
+console.log('SQL y credenciales preparados en .local/cloud sin mostrar secretos.');
