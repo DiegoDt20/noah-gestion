@@ -6,6 +6,12 @@ import { cargarProyecto, fmt, puedeGestionar, puedeVer } from "@/lib/acceso";
 import Formulario from "@/components/Formulario";
 import ListaTrabajo from "@/components/ListaTrabajo";
 import { Progreso } from "@/components/Estado";
+import EditarRepositorio from "@/components/EditarRepositorio";
+import IssuesGithub from "@/components/IssuesGithub";
+import AsistenteIA from "@/components/AsistenteIA";
+import ContrasteIA from "@/components/ContrasteIA";
+import { indicadoresProyecto } from "@/lib/kpi";
+import { repositorioGithub } from "@/lib/github-repositorio";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +22,9 @@ export default async function Proyecto({ params }: { params: Promise<{ id: strin
   const p = await cargarProyecto(id);
   if (!p || !(await puedeVer(s, p))) notFound();
   const gestiona = puedeGestionar(s, p);
+  const kpi = await indicadoresProyecto(s, id);
+  let github: string | null = null;
+  try { github = repositorioGithub(p.repositorio_github); } catch { /* Ignorar enlaces inválidos preexistentes. */ }
   const info = (await query<any>(
     `SELECT p.nombre, p.descripcion, ar.nombre area, (u.nombres||' '||u.apellidos) jefe FROM proyecto p
        JOIN area ar ON ar.id_area=p.id_area JOIN usuario u ON u.id_usuario=p.id_jefe WHERE p.id_proyecto=$1`, [id]))[0];
@@ -26,6 +35,13 @@ export default async function Proyecto({ params }: { params: Promise<{ id: strin
   const candidatos = gestiona ? await query<any>(
     `SELECT u.id_usuario, u.nombres||' '||u.apellidos nombre FROM usuario u JOIN rol r ON r.id_rol=u.id_rol
       WHERE r.nombre='colaborador' AND u.activo AND u.id_usuario NOT IN (SELECT id_usuario FROM proyecto_miembro WHERE id_proyecto=$1) ORDER BY nombre`, [id]) : [];
+  const accesoIA = s.rol === "gerencia" || (s.rol === "jefe_area" && p.id_jefe === s.id);
+  const [reportesIA, documentosIA, observacionesIA, consultasIA] = accesoIA ? await Promise.all([
+    query<{id:number;nombre:string}>(`SELECT r.id_reporte id, t.titulo || ' · ' || r.fecha_reporte::text || ' · ' || r.momento nombre FROM reporte_avance r JOIN tarea t ON t.id_tarea=r.id_tarea WHERE t.id_proyecto=$1 ORDER BY r.fecha_hora DESC LIMIT 100`,[id]),
+    query<{id:number;nombre:string}>(`SELECT d.id_documento id,d.nombre FROM documento d WHERE d.id_proyecto=$1 AND EXISTS(SELECT 1 FROM fragmento_documento f WHERE f.id_documento=d.id_documento) ORDER BY d.fecha_subida DESC LIMIT 100`,[id]),
+    query<{id:number;diferencia:string;documento:string;reporte:string;fecha:string}>(`SELECT o.id_observacion id,o.diferencia,COALESCE(d.nombre,'Documento no disponible') documento,t.titulo reporte,to_char(o.fecha_hora,'DD/MM/YYYY HH24:MI') fecha FROM observacion_ia o JOIN reporte_avance r ON r.id_reporte=o.id_reporte JOIN tarea t ON t.id_tarea=r.id_tarea LEFT JOIN documento d ON d.id_documento=o.id_documento WHERE t.id_proyecto=$1 ORDER BY o.fecha_hora DESC,o.id_observacion DESC LIMIT 100`,[id]),
+    query<{id:number;pregunta:string;respuesta:string;documento:string;fecha:string}>(`SELECT c.id_consulta id,c.pregunta,c.respuesta,COALESCE(d.nombre,'Documentos del proyecto') documento,to_char(c.fecha_hora,'DD/MM/YYYY HH24:MI') fecha FROM consulta_asistente c LEFT JOIN documento d ON d.id_documento=c.id_documento WHERE c.id_proyecto=$1 ORDER BY c.fecha_hora DESC,c.id_consulta DESC LIMIT 100`,[id])
+  ]) : [[],[],[],[]];
   const hechas = tareas.filter(t => t.estado === "entregada").length;
   const ini = (n: string) => n.split(" ").map(x => x[0]).slice(0, 2).join("").toUpperCase();
   return (
@@ -39,6 +55,7 @@ export default async function Proyecto({ params }: { params: Promise<{ id: strin
           </div>
           <Progreso hechas={hechas} total={tareas.length} />
         </div>
+        {github && <p className="mt-4 text-sm"><a href={github} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Repositorio de GitHub ↗</a></p>}
         <dl className="project-facts">
           <div><dt className="text-xs text-slate-300">Área</dt><dd className="font-medium">{info.area}</dd></div>
           <div><dt className="text-xs text-slate-300">Jefe del proyecto</dt><dd className="font-medium">{info.jefe}</dd></div>
@@ -46,7 +63,18 @@ export default async function Proyecto({ params }: { params: Promise<{ id: strin
           <div><dt className="text-xs text-slate-300">Entrega</dt><dd className="font-medium">{fmt(p.fecha_entrega)}</dd></div>
         </dl>
       </div>
-      <nav className="module-subnav" aria-label="Secciones del proyecto"><a href="#equipo-proyecto">Equipo · {miembros.length}</a><a href="#tareas-proyecto">Tareas · {tareas.length}</a>{gestiona&&<a href="#asignar-tarea">Asignar tarea</a>}</nav>
+      {gestiona && <EditarRepositorio proyecto={id} actual={github} />}
+      {github && <IssuesGithub proyecto={id} />}
+      {kpi && <section className="panel mb-6" aria-labelledby="indicadores-proyecto"><div className="panel-cab"><div><h2 id="indicadores-proyecto" className="panel-tit">Indicadores del proyecto</h2><p className="chart-description">Calculados con los registros actuales del proyecto</p></div></div><dl className="kpi-grid">
+        <div><dt>PTA · Entregas a tiempo</dt><dd>{kpi.pta === null ? "Sin datos suficientes" : `${kpi.pta.toLocaleString("es-PE", {maximumFractionDigits: 1})} %`}</dd><p>{kpi.entregas_sin_historial ? "Falta historial de entrega para una o más tareas." : `${kpi.entregadas_a_tiempo} de ${kpi.elegibles} tareas vencidas o entregadas`}</p></div>
+        <div><dt>RAT · Reportes por tarea</dt><dd>{kpi.rat === null ? "Sin datos suficientes" : kpi.rat.toLocaleString("es-PE", {maximumFractionDigits: 2})}</dd><p>{kpi.reportes} reportes · {kpi.tareas} tareas</p></div>
+        <div><dt>TDR · Detección de retrasos</dt><dd>{kpi.tdr === null ? "Sin datos suficientes" : `${kpi.tdr.toLocaleString("es-PE", {maximumFractionDigits: 1})} días`}</dd><p>{kpi.alertas} tareas con alerta de retraso registrada</p></div>
+      </dl><p className="px-5 pb-5 text-xs leading-5 text-suave">El TDR mide desde el vencimiento hasta la primera alerta registrada para esa fecha; depende de cuándo se revisaron las alertas.</p></section>}
+      {accesoIA && <AsistenteIA proyecto={id} documentos={documentosIA} />}
+      {accesoIA && <ContrasteIA reportes={reportesIA} documentos={documentosIA} />}
+      {accesoIA && consultasIA.length > 0 && <section className="panel mt-6"><div className="panel-cab"><h2 className="panel-tit">Consultas guardadas</h2></div><ul className="divide-y divide-linea">{consultasIA.map(c=><li key={c.id} className="p-5"><p className="text-xs text-suave">{c.fecha} · {c.documento}</p><p className="mt-2 text-sm font-semibold">{c.pregunta}</p><p className="mt-2 whitespace-pre-wrap text-sm">{c.respuesta}</p></li>)}</ul></section>}
+      {accesoIA && observacionesIA.length > 0 && <section className="panel mt-6"><div className="panel-cab"><h2 className="panel-tit">Observaciones guardadas</h2></div><ul className="divide-y divide-linea">{observacionesIA.map(o=><li key={o.id} className="p-5"><p className="text-xs text-suave">{o.fecha} · {o.reporte} · {o.documento}</p><p className="mt-2 whitespace-pre-wrap text-sm">{o.diferencia}</p></li>)}</ul></section>}
+      <nav className="module-subnav mt-6" aria-label="Secciones del proyecto"><a href="#equipo-proyecto">Equipo · {miembros.length}</a><a href="#tareas-proyecto">Tareas · {tareas.length}</a>{gestiona&&<a href="#asignar-tarea">Asignar tarea</a>}</nav>
       <div className="grid gap-6 xl:grid-cols-3">
         <div id="equipo-proyecto" className="panel h-fit scroll-mt-6">
           <div className="panel-cab"><h2 className="panel-tit">Equipo ({miembros.length})</h2></div>

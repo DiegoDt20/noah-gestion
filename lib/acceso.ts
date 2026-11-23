@@ -18,6 +18,7 @@ export interface ProyectoFila {
   id_jefe: number;
   nombre: string;
   descripcion: string | null;
+  repositorio_github: string | null;
   fecha_inicio: string;
   fecha_entrega: string;
   estado: string;

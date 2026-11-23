@@ -38,7 +38,7 @@ export default function Login() {
             <div className="grid h-10 w-10 place-items-center rounded-lg bg-marca font-bold text-white">NT</div>
             <span className="font-bold text-marca">NOAH TECH</span>
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-marca-oscuro">Bienvenido de nuevo</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-marca-oscuro">Iniciar sesión</h1>
           <p className="mb-6 mt-1 text-sm text-suave">Ingresa con tu correo corporativo.</p>
           <form aria-busy={cargando} onSubmit={entrar} className="space-y-4">
             <div><label className="etiqueta" htmlFor="correo">Correo</label><input id="correo" name="correo" type="email" autoComplete="username" required autoFocus className="campo" placeholder="nombre@noahtech.pe" /></div>

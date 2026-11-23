@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { repositorioGithub } from "@/lib/github-repositorio";
 import { error, fechaOk, requerir } from "@/lib/acceso";
 
 // RF-04: registro de proyectos
@@ -26,6 +27,9 @@ export async function POST(req: Request) {
   const s = a.s;
   const b = await req.json().catch(() => ({}));
   const { nombre, descripcion, fecha_inicio, fecha_entrega } = b;
+  let repositorio_github: string | null;
+  try { repositorio_github = repositorioGithub(b.repositorio_github); }
+  catch (e) { return error(e instanceof Error ? e.message : "URL de GitHub inválida"); }
   if (!nombre || !String(nombre).trim()) return error("Escribe el nombre del proyecto");
   if (!fechaOk(fecha_inicio) || !fechaOk(fecha_entrega)) return error("Las fechas no son válidas");
   if (fecha_entrega < fecha_inicio) return error("La fecha de entrega no puede ser anterior a la de inicio");
@@ -43,9 +47,9 @@ export async function POST(req: Request) {
   if (!jefe[0].id_area) return error("El jefe de área no tiene un área asignada");
 
   const r = await query(
-    `INSERT INTO proyecto (id_area,id_jefe,nombre,descripcion,fecha_inicio,fecha_entrega)
-     VALUES ($1,$2,$3,$4,$5,$6) RETURNING id_proyecto`,
-    [jefe[0].id_area, id_jefe, String(nombre).trim(), descripcion ? String(descripcion).trim() : null, fecha_inicio, fecha_entrega]
+    `INSERT INTO proyecto (id_area,id_jefe,nombre,descripcion,fecha_inicio,fecha_entrega,repositorio_github)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id_proyecto`,
+    [jefe[0].id_area, id_jefe, String(nombre).trim(), descripcion ? String(descripcion).trim() : null, fecha_inicio, fecha_entrega, repositorio_github]
   );
   // el jefe queda como miembro del proyecto
   await query("INSERT INTO proyecto_miembro (id_proyecto,id_usuario,rol_en_proyecto) VALUES ($1,$2,'Jefe de proyecto')", [r[0].id_proyecto, id_jefe]);

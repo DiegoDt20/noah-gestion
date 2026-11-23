@@ -43,10 +43,10 @@ Se trabaja en **4 sprints de 3 semanas** (ciclo PPP2, semanas 17 a 32 del plan d
 | **Sprint 1** · Acceso, roles y usuarios | RF-01 Inicio de sesión · RF-02 Control de acceso por roles · RF-03 Gestión de usuarios y roles | 17 a 19 | ✅ Terminado |
 | **Sprint 2** · Proyectos y tareas | RF-04 Registro de proyectos · RF-05 Asignación de roles y tareas · RF-06 Estado de las tareas | 20 a 22 | ✅ Terminado |
 | **Sprint 3** · Reportes, panel y alertas | RF-07 a RF-11: registro de avance, recordatorios, consulta de reportes, panel de seguimiento y alertas | 23 a 25 | ✅ Terminado: RF-07 a RF-11 implementados |
-| **Sprint 4** · Documentos, IA y KPI | RF-12 a RF-16: procesamiento de documentos, contraste con IA, asistente, cálculo de KPI y exportación | 26 a 28 | 🚧 RF-12 implementado; RF-13 a RF-16 pendientes |
+| **Sprint 4** · Documentos, IA y KPI | RF-12 a RF-16: procesamiento de documentos, contraste con IA, asistente, cálculo de KPI y exportación | 26 a 28 | 🚧 RF-12, RF-15 y RF-16 implementados; RF-13 y RF-14 pendientes |
 | **Cierre** | Pruebas de aceptación, despliegue en producción y documentación final | 29 a 32 | ⏳ Planificado |
 
-Al final de cada sprint se hace la revisión con el jefe de prácticas y la retrospectiva. Avance actual: **12 de 16 requerimientos (75 %)**.
+Al final de cada sprint se hace la revisión con el jefe de prácticas y la retrospectiva. Avance actual: **14 de 16 requerimientos (87,5 %)**.
 
 ---
 
@@ -363,3 +363,41 @@ TEST_BASE_URL=http://127.0.0.1:3002 npm run test:rf12
 No uses `db:setup` para actualizar datos existentes. Para una base nueva, el esquema completo ya incluye las columnas.
 
 API: `GET /api/documentos?proyecto=ID`; `POST /api/documentos` multipart con `proyecto` y `archivo`; `GET /api/documentos/ID` para texto fragmentado y `GET /api/documentos/ID?descargar=1` para el original. Sesión obligatoria, consultas parametrizadas y respuestas sin caché compartida. La carga limita el cuerpo antes de analizar multipart, también si no hay Content-Length. La prueba utiliza proyectos temporales y limpia exclusivamente sus registros.
+
+
+## RF-16 · Exportación de reportes
+
+Gerencia y jefes de área pueden descargar desde Consulta de reportes un CSV con los filtros y el orden aplicados; se incluyen todas las páginas dentro de su alcance de acceso. El archivo protege las celdas de texto que puedan interpretarse como fórmulas y admite hasta 10 000 resultados; para más resultados hay que acotar los filtros. La consulta comprueba permisos de nuevo al exportar. Si detecta cambios en la cantidad o duplicados durante la descarga, solicita reintentar.
+
+### Seguimiento de cambios solicitados
+
+- Campo opcional de repositorio GitHub en el registro y detalle del proyecto: implementado. Solo admite URL HTTPS de repositorios de github.com; no utiliza la API de GitHub.
+- RF-15 (PTA, RAT y TDR): implementado en el detalle del proyecto para gerencia y el jefe responsable.
+- RF-13 y RF-14: pendientes de elección del proveedor de IA.
+
+Para actualizar una base existente sin borrar datos, ejecuta `npm run db:migrate:github`. Para verificar con los usuarios demo, ejecuta `node --env-file=.env.local scripts/test-repositorio-github.mjs` con el servidor activo.
+
+
+## RF-15 · Indicadores del proyecto
+
+Gerencia y el jefe responsable ven los indicadores en el detalle del proyecto. PTA divide las tareas actualmente entregadas a tiempo entre las que ya vencieron o están entregadas; usa la última transición a entregada, expresada en fecha de Lima. Las tareas vencidas son las anteriores al día actual. Si falta historial de alguna tarea actualmente entregada, PTA muestra «Sin datos suficientes». El historial anterior se interpreta según la hora guardada; los cambios nuevos se registran en hora de Lima. RAT divide todos los reportes entre todas las tareas; con tareas y ningún reporte el resultado es cero. TDR promedia los días desde el vencimiento hasta la primera alerta de retraso registrada para esa fecha por tarea. Alertas antiguas sin referencia a la fecha actual no se incluyen; las alertas dependen de cuándo se revisaron. Un denominador vacío o la ausencia de alertas muestra «Sin datos suficientes». Los indicadores usan la fecha de vencimiento actual y no reconstruyen cambios históricos de plazos.
+
+Verificación con usuarios demo: `node --env-file=.env.local scripts/test-rf15.mjs`.
+
+### RF-13 y RF-14 · Integración Anthropic en preparación
+
+En el detalle de proyecto, gerencia y el jefe responsable pueden consultar los documentos de ese proyecto o seleccionar un reporte y un documento para contrastar. Al ejecutar la acción, la aplicación envía los fragmentos seleccionados a Anthropic; la respuesta se guarda en las tablas existentes y se muestra el historial. Las citas se verifican literalmente contra los fragmentos enviados, pero esto no garantiza que la interpretación de la IA sea correcta. La consulta busca por palabras en los documentos del proyecto y envía hasta 12 fragmentos relevantes; no implementa búsqueda semántica ni embeddings. Si no encuentra coincidencias, informa que no encontró información suficiente, sin llamar al proveedor. Las fuentes aparecen en el texto guardado de la respuesta; la coincidencia literal de una cita no garantiza que la interpretación sea correcta. El contraste solo guarda contradicciones con citas verificadas. El acceso se comprueba antes de la petición y nuevamente antes de guardar.
+
+Configura `ANTHROPIC_API_KEY` en `.env.local` y opcionalmente `ANTHROPIC_MODEL`; reinicia el servidor después de editarlo. No compartas ni subas esa clave. Sin clave, los controles muestran un error recuperable y no se envían documentos. Se verificaron permisos y ausencia de clave; la integración real con Anthropic queda pendiente de configurar credenciales y hacer una prueba de extremo a extremo. Hasta entonces RF-13 y RF-14 siguen pendientes de validación.
+
+### Consulta de issues de GitHub (solo lectura)
+
+El detalle de un proyecto con repositorio registrado ofrece «Consultar issues». Muestra issues abiertos y cerrados de la primera página de hasta 100 resultados de GitHub, ordenados por actualización, sin incluir pull requests ni sincronizar tareas; la primera página puede contener menos de 100 issues porque GitHub también devuelve pull requests. Si hay más resultados se indica en pantalla. La consulta se hace solo al pulsar el botón y respeta el alcance de acceso al proyecto de Noah. Los repositorios públicos funcionan sin token, sujetos a los límites de GitHub.
+
+Para un repositorio privado, quien administra el servidor puede configurar en `.env.local` un token de GitHub de permisos mínimos (fine-grained, permiso **Issues: read-only** y acceso solo a los repositorios necesarios) en `GITHUB_READ_TOKEN`, y enumerar los repositorios habilitados en `GITHUB_REPOSITORIES=propietario/repositorio,otro/repo`. Reinicia el servidor después de configurarlo; no subas ni compartas el token. El token es compartido por el servidor: **todas las personas que puedan ver un proyecto de Noah podrán consultar los issues del repositorio privado vinculado**, aunque no tengan acceso individual a GitHub. Configura cada repositorio solo si esa visibilidad es apropiada. No existe autenticación GitHub por usuario.
+
+Para verificar sesión, alcance y conexión con GitHub usando datos temporales, ejecuta `node --env-file=.env.local scripts/test-github-issues.mjs` con el servidor activo. La consulta se limita a la primera página y no incluye el cuerpo de los issues, hitos ni su organización por semanas.
+
+El administrador y el jefe responsable pueden añadir, cambiar o quitar el enlace de GitHub desde el detalle de un proyecto existente. El campo vacío elimina solo el enlace guardado en Noah; no cambia el repositorio en GitHub. Verificación con el servidor y usuarios demo: `node --env-file=.env.local scripts/test-editar-repositorio.mjs`.
+
+La búsqueda léxica y el aislamiento entre proyectos se pueden comprobar con `node --env-file=.env.local scripts/test-busqueda-asistente.mjs`. La prueba real con Anthropic sigue pendiente.

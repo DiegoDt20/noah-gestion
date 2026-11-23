@@ -22,7 +22,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (t.estado === estado) { await c.query("ROLLBACK"); return error("La tarea ya está en ese estado"); }
     await c.query("UPDATE tarea SET estado=$1, actualizado_en=(CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima') WHERE id_tarea=$2", [estado, id]);
     await c.query(
-      "INSERT INTO historial_estado (id_tarea,id_usuario,estado_anterior,estado_nuevo) VALUES ($1,$2,$3,$4)",
+      "INSERT INTO historial_estado (id_tarea,id_usuario,estado_anterior,estado_nuevo,fecha_hora) VALUES ($1,$2,$3,$4,(CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima'))",
       [id, a.s.id, t.estado, estado]
     );
     await c.query("COMMIT");

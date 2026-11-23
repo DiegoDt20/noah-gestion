@@ -16,6 +16,7 @@
     "test:rf10": "node --env-file=.env.local scripts/test-rf10.mjs",
     "db:migrate:rf11": "node --env-file=.env.local scripts/migrate-rf11.mjs",
     "test:rf11": "node --env-file=.env.local scripts/test-rf11.mjs",
+    "db:migrate:github": "node --env-file=.env.local scripts/migrate-repositorio-github.mjs",
     "db:migrate:rf12": "node --env-file=.env.local scripts/migrate-rf12.mjs",
     "test:rf12": "node --env-file=.env.local scripts/test-rf12.mjs"
   },

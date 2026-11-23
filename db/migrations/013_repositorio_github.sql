@@ -1,0 +1,1 @@
+ALTER TABLE proyecto ADD COLUMN IF NOT EXISTS repositorio_github VARCHAR(500);

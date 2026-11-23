@@ -38,6 +38,7 @@ CREATE TABLE proyecto (
     id_jefe        INTEGER      NOT NULL REFERENCES usuario(id_usuario),
     nombre         VARCHAR(120) NOT NULL,
     descripcion    TEXT,
+    repositorio_github VARCHAR(500),
     fecha_inicio   DATE         NOT NULL,
     fecha_entrega  DATE         NOT NULL,
     estado         VARCHAR(12)  NOT NULL DEFAULT 'pendiente'

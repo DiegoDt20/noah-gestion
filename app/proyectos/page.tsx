@@ -30,6 +30,7 @@ export default async function Proyectos() {
             <Formulario url="/api/proyectos" boton="Registrar proyecto">
               <div><label htmlFor="proyecto-nombre" className="etiqueta">Nombre del proyecto</label><input id="proyecto-nombre" name="nombre" required className="campo" /></div>
               <div><label htmlFor="proyecto-descripcion" className="etiqueta">Descripción</label><textarea id="proyecto-descripcion" name="descripcion" className="campo" rows={3} /></div>
+              <div><label htmlFor="proyecto-github" className="etiqueta">Repositorio de GitHub (opcional)</label><input id="proyecto-github" name="repositorio_github" type="url" maxLength={500} className="campo" placeholder="https://github.com/organizacion/repositorio" /></div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div><label htmlFor="proyecto-fecha_inicio" className="etiqueta">Fecha de inicio</label><input id="proyecto-fecha_inicio" name="fecha_inicio" type="date" required className="campo" /></div>
                 <div><label htmlFor="proyecto-fecha_entrega" className="etiqueta">Fecha de entrega</label><input id="proyecto-fecha_entrega" name="fecha_entrega" type="date" required className="campo" /></div>
