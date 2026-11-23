@@ -1,5 +1,6 @@
+import { configDBDesdeEntorno } from '../lib/db-config.mjs';
 import assert from 'node:assert/strict';import pg from 'pg';
-const db=new pg.Client({connectionString:process.env.DATABASE_URL,ssl:process.env.DATABASE_SSL==='false'?false:{rejectUnauthorized:false}});const base=process.env.TEST_BASE_URL||'http://127.0.0.1:3000';const ids=[];
+const db=new pg.Client(configDBDesdeEntorno());const base=process.env.TEST_BASE_URL||'http://127.0.0.1:3000';const ids=[];
 async function login(n){const r=await fetch(base+'/api/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({correo:n+'@noahtech.pe',clave:process.env.DEMO_PASSWORD||'Demo2026!'})});assert.equal(r.status,200);return r.headers.get('set-cookie').split(';')[0];}
 try{await db.connect();const usuarios=(await db.query('SELECT id_usuario,correo FROM usuario')).rows;const id=n=>usuarios.find(u=>u.correo===n+'@noahtech.pe').id_usuario;for(const jefe of ['jefe','admin'])ids.push((await db.query("INSERT INTO proyecto(id_area,id_jefe,nombre,fecha_inicio,fecha_entrega) VALUES(3,$1,'Prueba temporal repositorio',CURRENT_DATE,CURRENT_DATE+5) RETURNING id_proyecto",[id(jefe)])).rows[0].id_proyecto);const cookies={};for(const x of ['admin','jefe','gerencia','carlos'])cookies[x]=await login(x);
  async function patch(rol,p,valor){return fetch(`${base}/api/proyectos/${p}/repositorio`,{method:'PATCH',headers:{'content-type':'application/json',...(rol?{cookie:cookies[rol]}:{})},body:JSON.stringify({repositorio_github:valor})});}

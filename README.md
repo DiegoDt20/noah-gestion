@@ -118,7 +118,7 @@ DATABASE_SSL=false
 JWT_SECRET=un-texto-largo-y-secreto
 ```
 
-Para Supabase usa la cadena *Session pooler* y `DATABASE_SSL=true`.
+Para PostgreSQL remoto usa `DATABASE_SSL=true` y un certificado confiable. Si tu proveedor utiliza una CA privada, configura `DATABASE_CA_CERT` con el certificado PEM. El nombre del servidor debe coincidir con su certificado. No agregues parámetros SSL ni `host` en `DATABASE_URL`: podrían sobrescribir la configuración del cliente. `DATABASE_SSL=false` solo se permite para localhost fuera de producción. Consulta las instrucciones de conexión de tu proveedor para elegir el pooler.
 
 ```bash
 npm run db:setup   # crea las tablas y carga datos de ejemplo (borra los datos existentes)
@@ -412,3 +412,5 @@ La búsqueda léxica y el aislamiento entre proyectos se pueden comprobar con `n
 Consulta [la revisión de preparación para producción](docs/preparacion-produccion.md) antes de desplegar. La aplicación tiene bloqueantes de seguridad y validación que deben resolverse primero.
 
 En producción, `JWT_SECRET` es obligatorio y debe tener al menos 32 caracteres; los valores de ejemplo conocidos se rechazan. El arranque sin una clave válida falla de forma segura. La prueba aislada se ejecuta con `npm run test:secreto`.
+
+La configuración TLS se comparte entre la aplicación, migraciones y scripts. La prueba `node scripts/test-postgres-tls.mjs` requiere `openssl` y herramientas de PostgreSQL locales; crea y elimina un clúster temporal y comprueba certificado confiable, CA desconocida y nombre incorrecto.

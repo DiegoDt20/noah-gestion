@@ -1,3 +1,4 @@
+import { configDBDesdeEntorno } from '../lib/db-config.mjs';
 // Crea las tablas (db/schema.sql) y carga datos DEMO. Uso: npm run db:setup
 import fs from "node:fs";
 import pg from "pg";
@@ -5,7 +6,7 @@ import bcrypt from "bcryptjs";
 
 const url = process.env.DATABASE_URL;
 if (!url) { console.error("Falta DATABASE_URL (crea el archivo .env.local)"); process.exit(1); }
-const c = new pg.Client({ connectionString: url, ssl: process.env.DATABASE_SSL === "false" ? false : { rejectUnauthorized: false } });
+const c = new pg.Client(configDBDesdeEntorno());
 await c.connect();
 
 await c.query(fs.readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8"));

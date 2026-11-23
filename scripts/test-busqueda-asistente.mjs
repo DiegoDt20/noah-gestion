@@ -1,5 +1,6 @@
+import { configDBDesdeEntorno } from '../lib/db-config.mjs';
 import assert from 'node:assert/strict';import pg from 'pg';
-const db=new pg.Client({connectionString:process.env.DATABASE_URL,ssl:process.env.DATABASE_SSL==='false'?false:{rejectUnauthorized:false}});const base=process.env.TEST_BASE_URL||'http://127.0.0.1:3000';const ids=[];
+const db=new pg.Client(configDBDesdeEntorno());const base=process.env.TEST_BASE_URL||'http://127.0.0.1:3000';const ids=[];
 async function login(n){const r=await fetch(base+'/api/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({correo:n+'@noahtech.pe',clave:process.env.DEMO_PASSWORD||'Demo2026!'})});assert.equal(r.status,200);return r.headers.get('set-cookie').split(';')[0];}
 try{await db.connect();const us=(await db.query('SELECT id_usuario,correo FROM usuario')).rows;const id=n=>us.find(u=>u.correo===n+'@noahtech.pe').id_usuario;for(const jefe of ['jefe','admin'])ids.push((await db.query("INSERT INTO proyecto(id_area,id_jefe,nombre,fecha_inicio,fecha_entrega) VALUES(3,$1,'Prueba temporal búsqueda IA',CURRENT_DATE,CURRENT_DATE+5) RETURNING id_proyecto",[id(jefe)])).rows[0].id_proyecto);
  async function documento(p,nombre,texto){const d=(await db.query("INSERT INTO documento(id_proyecto,subido_por,nombre,ruta_archivo) VALUES($1,$2,$3,'prueba') RETURNING id_documento",[p,id('jefe'),nombre])).rows[0].id_documento;await db.query('INSERT INTO fragmento_documento(id_documento,orden,texto) VALUES($1,1,$2)',[d,texto]);}

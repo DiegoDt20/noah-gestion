@@ -1,5 +1,6 @@
-﻿import pg from 'pg';
-const c=new pg.Client({connectionString:process.env.DATABASE_URL,ssl:process.env.DATABASE_SSL==='false'?false:{rejectUnauthorized:false}});
+import { configDBDesdeEntorno } from '../lib/db-config.mjs';
+import pg from 'pg';
+const c=new pg.Client(configDBDesdeEntorno());
 try {
  await c.connect();await c.query('BEGIN');
  await c.query('LOCK TABLE tarea IN SHARE ROW EXCLUSIVE MODE');

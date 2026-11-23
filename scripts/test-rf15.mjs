@@ -1,6 +1,7 @@
+import { configDBDesdeEntorno } from '../lib/db-config.mjs';
 import assert from 'node:assert/strict';
 import pg from 'pg';
-const db=new pg.Client({connectionString:process.env.DATABASE_URL,ssl:process.env.DATABASE_SSL==='false'?false:{rejectUnauthorized:false}});
+const db=new pg.Client(configDBDesdeEntorno());
 const base=process.env.TEST_BASE_URL||'http://127.0.0.1:3000';let proyecto;
 async function login(rol){const r=await fetch(base+'/api/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({correo:rol+'@noahtech.pe',clave:process.env.DEMO_PASSWORD||'Demo2026!'})});assert.equal(r.status,200);return r.headers.get('set-cookie').split(';')[0];}
 try {

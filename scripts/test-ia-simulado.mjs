@@ -1,6 +1,7 @@
+import { configDBDesdeEntorno } from '../lib/db-config.mjs';
 import assert from 'node:assert/strict';import {mkdtempSync,cpSync,symlinkSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';import path from 'node:path';import {spawn} from 'node:child_process';import {setTimeout as esperar} from 'node:timers/promises';import pg from 'pg';
 const root=process.cwd(),dir=mkdtempSync(path.join(tmpdir(),'noah-ia-test-')),puerto=32174,base=`http://127.0.0.1:${puerto}`;let servidor,proyecto,privado;let logs='';
-const db=new pg.Client({connectionString:process.env.DATABASE_URL,ssl:process.env.DATABASE_SSL==='false'?false:{rejectUnauthorized:false}});
+const db=new pg.Client(configDBDesdeEntorno());
 async function login(n){const r=await fetch(base+'/api/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({correo:n+'@noahtech.pe',clave:process.env.DEMO_PASSWORD||'Demo2026!'})});assert.equal(r.status,200);return r.headers.get('set-cookie').split(';')[0];}
 async function post(pathname,cookie,data){const r=await fetch(base+pathname,{method:'POST',headers:{'content-type':'application/json',...(cookie?{cookie}:{})},body:JSON.stringify(data)});return {status:r.status,body:await r.json()};}
 try{

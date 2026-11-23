@@ -1,7 +1,8 @@
+import { configDBDesdeEntorno } from '../lib/db-config.mjs';
 import assert from "node:assert/strict";
 import pg from "pg";
 const base = process.env.TEST_BASE_URL || "http://127.0.0.1:3000";
-const db = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_SSL === "false" ? false : { rejectUnauthorized: false } });
+const db = new pg.Client(configDBDesdeEntorno());
 const proyectos = [], usuarios = [], sesiones = {};
 let checks = 0;
 function ok(valor, texto) { assert.ok(valor, texto); checks++; }

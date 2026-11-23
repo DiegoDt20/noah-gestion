@@ -12,7 +12,7 @@ Estado de la revisión: 22 de noviembre de 2026. Esta guía prepara el trabajo; 
 ## Pendiente antes de publicar
 
 1. **Secretos y sesiones.** Configurar `JWT_SECRET` largo, único y aleatorio en el entorno de destino. El servidor de producción rechaza el arranque si falta la variable, tiene menos de 32 caracteres útiles o coincide con los valores de ejemplo conocidos. Esta validación se probó en un servidor aislado; queda configurar una clave aleatoria y única en cada entorno real. No compartir claves por chat, capturas, commits ni registros.
-2. **Conexión a PostgreSQL.** `DATABASE_SSL=true` activa TLS, pero la configuración actual usa `rejectUnauthorized: false`, por lo que no verifica la identidad del servidor. Corregir y probar la validación del certificado de la base antes de conectar datos reales. Nunca usar la autenticación local `trust` fuera de la demostración.
+2. **Conexión a PostgreSQL.** La aplicación y los scripts verifican el certificado y el nombre del servidor con TLS. Si el proveedor usa una CA privada, configurar `DATABASE_CA_CERT` con el certificado PEM. `DATABASE_SSL=false` se admite solo para localhost fuera de producción. Antes de conectar datos reales, probar la conexión y el certificado específico del proveedor en un entorno separado. Nunca usar la autenticación local `trust` fuera de la demostración.
 3. **Acceso y protección de cuentas.** No se observa límite de intentos en el inicio de sesión. Añadir y comprobar protección contra intentos repetidos, y revisar la revocación de sesiones y las operaciones sensibles con los responsables del sistema.
 4. **Base real y cuentas.** Preparar una base distinta de la demostración y un procedimiento seguro para crear el primer administrador. El script `npm run db:setup` ejecuta un esquema que elimina tablas existentes y carga usuarios de demostración: **no ejecutarlo contra una base con datos que deban conservarse ni usarlo como inicialización de producción**. No usar contraseñas demo ni copiar el `.env.local` de desarrollo.
 5. **Respaldos y restauración.** Definir responsable, frecuencia, retención y almacenamiento protegido. Probar la restauración completa en una base separada antes de depender de los respaldos; incluir tanto los datos como los archivos de documentos almacenados en la base. Antes de cualquier migración, comprobar que existe un respaldo restaurable.
@@ -26,7 +26,8 @@ Estado de la revisión: 22 de noviembre de 2026. Esta guía prepara el trabajo; 
 | Variable | Uso |
 |---|---|
 | `DATABASE_URL` | Conexión a la base del entorno correspondiente. |
-| `DATABASE_SSL` | Configuración TLS actual; requiere corregir la verificación del certificado antes de producción. |
+| `DATABASE_SSL` | `true` verifica certificado y nombre; `false` solo para localhost fuera de producción. |
+| `DATABASE_CA_CERT` | Certificado PEM de la CA del proveedor, si no pertenece al almacén de confianza del sistema. |
 | `JWT_SECRET` | Firma de sesiones; debe ser único y mantenerse secreto. |
 | `ANTHROPIC_API_KEY` | Opcional hasta habilitar IA; solo en servidor. |
 | `ANTHROPIC_MODEL` | Modelo de Anthropic, configurable. |
@@ -41,7 +42,7 @@ Antes de aplicar cambios, identificar qué versión de esquema está instalada, 
 
 ## Orden propuesto
 
-1. Configurar un secreto propio en el entorno y resolver y probar los bloqueantes de TLS e inicio de sesión.
+1. Configurar un secreto propio en el entorno y verificar el certificado del proveedor y resolver la protección de inicio de sesión.
 2. Diseñar la inicialización de una base real, el primer administrador y el respaldo/restauración.
 3. Preparar un entorno de pruebas separado, aplicar migraciones verificadas y probar documentos y roles.
 4. Configurar y probar Anthropic con datos de demostración cuando corresponda.

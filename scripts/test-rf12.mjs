@@ -1,8 +1,9 @@
+import { configDBDesdeEntorno } from '../lib/db-config.mjs';
 import assert from 'node:assert/strict';
 import pg from 'pg';
 import { readFile } from 'node:fs/promises';
 const base=process.env.TEST_BASE_URL||'http://127.0.0.1:3000';
-const db=new pg.Client({connectionString:process.env.DATABASE_URL,ssl:process.env.DATABASE_SSL==='false'?false:{rejectUnauthorized:false}});
+const db=new pg.Client(configDBDesdeEntorno());
 const cookies={};const proyectos=[];let checks=0;
 const eq=(a,b,msg)=>{assert.deepEqual(a,b,msg);checks++;};
 async function req(rol,path,opts={}){return fetch(base+path,{...opts,headers:{...opts.headers,...(rol?{cookie:cookies[rol]}:{})}});}
