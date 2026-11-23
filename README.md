@@ -410,3 +410,5 @@ La búsqueda léxica y el aislamiento entre proyectos se pueden comprobar con `n
 ## Preparación para producción
 
 Consulta [la revisión de preparación para producción](docs/preparacion-produccion.md) antes de desplegar. La aplicación tiene bloqueantes de seguridad y validación que deben resolverse primero.
+
+En producción, `JWT_SECRET` es obligatorio y debe tener al menos 32 caracteres; los valores de ejemplo conocidos se rechazan. El arranque sin una clave válida falla de forma segura. La prueba aislada se ejecuta con `npm run test:secreto`.

@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { secretoSesion } from "./session-secret.mjs";
 
 export type Rol = "gerencia" | "jefe_area" | "colaborador" | "administrador";
 export interface Sesion {
@@ -10,7 +11,7 @@ export interface Sesion {
   id_area: number | null;
 }
 
-const secreto = () => new TextEncoder().encode(process.env.JWT_SECRET || "dev-secreto-cambiar-en-produccion-123456");
+const secreto = () => new TextEncoder().encode(secretoSesion(process.env.JWT_SECRET, process.env.NODE_ENV));
 
 export async function firmar(s: Sesion): Promise<string> {
   return new SignJWT({ ...s })
@@ -21,8 +22,9 @@ export async function firmar(s: Sesion): Promise<string> {
 }
 
 export async function verificar(token: string): Promise<Sesion | null> {
+  const clave = secreto();
   try {
-    const { payload } = await jwtVerify(token, secreto());
+    const { payload } = await jwtVerify(token, clave);
     return payload as unknown as Sesion;
   } catch {
     return null;

@@ -19,7 +19,8 @@
     "db:migrate:github": "node --env-file=.env.local scripts/migrate-repositorio-github.mjs",
     "db:migrate:rf12": "node --env-file=.env.local scripts/migrate-rf12.mjs",
     "test:rf12": "node --env-file=.env.local scripts/test-rf12.mjs",
-    "test:ia:simulada": "node --env-file=.env.local scripts/test-ia-simulado.mjs"
+    "test:ia:simulada": "node --env-file=.env.local scripts/test-ia-simulado.mjs",
+    "test:secreto": "node scripts/test-secreto-produccion.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

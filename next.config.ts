@@ -1,4 +1,6 @@
 import type { NextConfig } from 'next';
+import { PHASE_PRODUCTION_SERVER } from 'next/constants';
+import { secretoSesion } from './lib/session-secret.mjs';
 import { createRequire, isBuiltin } from 'node:module';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
@@ -29,4 +31,7 @@ const config: NextConfig = {
     '/api/documentos': ['./scripts/extraer-documento-worker.mjs', ...[...paquetes].map(p => path.relative(process.cwd(), p).split(path.sep).join('/') + '/**/*')],
   },
 };
-export default config;
+export default function configuracion(phase: string): NextConfig {
+  if (phase === PHASE_PRODUCTION_SERVER) secretoSesion(process.env.JWT_SECRET, 'production');
+  return config;
+}
