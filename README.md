@@ -401,3 +401,7 @@ Para verificar sesión, alcance y conexión con GitHub usando datos temporales, 
 El administrador y el jefe responsable pueden añadir, cambiar o quitar el enlace de GitHub desde el detalle de un proyecto existente. El campo vacío elimina solo el enlace guardado en Noah; no cambia el repositorio en GitHub. Verificación con el servidor y usuarios demo: `node --env-file=.env.local scripts/test-editar-repositorio.mjs`.
 
 La búsqueda léxica y el aislamiento entre proyectos se pueden comprobar con `node --env-file=.env.local scripts/test-busqueda-asistente.mjs`. La prueba real con Anthropic sigue pendiente.
+
+### Pruebas de IA simuladas
+
+`npm run test:ia:simulada` inicia un servidor de prueba aislado con una clave ficticia e intercepta las llamadas a Anthropic; no se envían documentos a servicios externos. Comprueba permisos, aislamiento, citas válidas e inventadas, fallos del proveedor y persistencia; crea y elimina registros temporales. Requiere la base de demostración y el puerto local 32174 disponible. Esta prueba no verifica el comportamiento real del modelo ni sustituye una prueba con credenciales configuradas.
