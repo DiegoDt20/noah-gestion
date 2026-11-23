@@ -405,3 +405,8 @@ La búsqueda léxica y el aislamiento entre proyectos se pueden comprobar con `n
 ### Pruebas de IA simuladas
 
 `npm run test:ia:simulada` inicia un servidor de prueba aislado con una clave ficticia e intercepta las llamadas a Anthropic; no se envían documentos a servicios externos. Comprueba permisos, aislamiento, citas válidas e inventadas, fallos del proveedor y persistencia; crea y elimina registros temporales. Requiere la base de demostración y el puerto local 32174 disponible. Esta prueba no verifica el comportamiento real del modelo ni sustituye una prueba con credenciales configuradas.
+
+
+## Preparación para producción
+
+Consulta [la revisión de preparación para producción](docs/preparacion-produccion.md) antes de desplegar. La aplicación tiene bloqueantes de seguridad y validación que deben resolverse primero.
