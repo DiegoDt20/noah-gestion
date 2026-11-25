@@ -25,7 +25,7 @@ export default function Navbar({ s }: { s: Sesion }) {
     { href: "/", t: "Inicio", i: "inicio" },
     { href: "/proyectos", t: "Proyectos", i: "proyectos" },
     ...(s.rol !== "gerencia" ? [{ href: "/mis-tareas", t: "Mis tareas", i: "tareas" as const }] : []),
-    { href: "/documentos", t: "Documentos", i: "reportes" },
+    { href: "/documentos", t: "Documentos", i: "documento" },
     { href: "/reportes", t: "Reportes", i: "reportes" },
     { href: "/alertas", t: "Alertas", i: "alerta" },
     { href: "/recordatorios", t: "Recordatorios", i: "campana" },
@@ -33,15 +33,18 @@ export default function Navbar({ s }: { s: Sesion }) {
   ];
   const activo = (h: string) => h === "/" ? ruta === "/" : ruta.startsWith(h);
   const iniciales = s.nombre.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
+  const grupos = [
+    { titulo: "Trabajo", enlaces: enlaces.filter(e => ["/", "/proyectos", "/mis-tareas"].includes(e.href)) },
+    { titulo: "Seguimiento", enlaces: enlaces.filter(e => ["/documentos", "/reportes", "/alertas", "/recordatorios"].includes(e.href)) },
+    { titulo: "Equipo", enlaces: enlaces.filter(e => e.href === "/usuarios") },
+  ].filter(g => g.enlaces.length);
   return <>
     <a className="saltar" href="#contenido">Ir al contenido</a>
     <aside className="app-nav">
-      <div className="nav-marca"><Link href="/" className="flex min-w-0 items-center gap-3" aria-label="NOAH TECH, inicio"><span className="marca-simbolo">N<span className="text-teal-300">.</span></span><span><strong className="block text-sm tracking-wide">NOAH TECH</strong><span className="text-xs text-slate-300">Gestión de proyectos</span></span></Link><button onClick={salir} disabled={saliendo} className="nav-salir nav-salir-mobile" aria-label="Cerrar sesión"><Icono nombre="salir" /></button></div>
-      <nav aria-label="Navegación principal" className="nav-enlaces">{enlaces.map(e => <Link key={e.href} href={e.href} aria-current={activo(e.href) ? "page" : undefined} className={`nav-enlace ${activo(e.href) ? "seleccionado" : ""}`}><Icono nombre={e.i} /><span>{e.t}</span>{e.href === "/recordatorios" && <ContadorRecordatorios/>}{e.href === "/alertas" && <AvisoAlertas/>}{activo(e.href) && <span className="ml-auto hidden h-1.5 w-1.5 rounded-full bg-teal-300 lg:block" />}</Link>)}</nav>
-      <div className="mt-auto hidden px-6 pb-6 lg:block"><p className="text-sm font-medium text-slate-200">Un equipo. Un mismo rumbo.</p><p className="mt-2 text-xs leading-5 text-slate-300">Proyectos, tareas y avances en un solo lugar.</p></div>
-      <div className="nav-perfil"><div className="flex min-w-0 items-center gap-3"><span className="avatar">{iniciales}</span><div className="min-w-0"><p className="truncate text-sm font-medium">{s.nombre}</p><p className="mt-0.5 text-xs text-slate-300">{ROL[s.rol]}</p></div></div><button onClick={salir} disabled={saliendo} className="nav-salir mt-4 w-full"><Icono nombre="salir" />{saliendo ? "Cerrando sesión…" : "Cerrar sesión"}</button></div>
-      {error && <p role="alert" className="px-4 pb-4 text-sm text-red-200">{error}</p>}
+      <div className="nav-marca"><Link href="/" className="flex min-w-0 items-center gap-3" aria-label="NOAH TECH, inicio"><span className="marca-simbolo">N<span className="opacity-60">.</span></span><span><strong className="brand-wordmark">noah<span className="text-marca">.</span></strong><span className="brand-subtitle">TECH SOLUTIONS</span></span></Link><button onClick={salir} disabled={saliendo} className="nav-salir nav-salir-mobile" aria-label="Cerrar sesión"><Icono nombre="salir" /></button></div>
+      <div className="nav-groups">{grupos.map(g => <div className="nav-group" key={g.titulo}><p className="nav-group-title">{g.titulo}</p><nav aria-label={g.titulo} className="nav-enlaces">{g.enlaces.map(e => <Link key={e.href} href={e.href} aria-current={activo(e.href) ? "page" : undefined} className={`nav-enlace ${activo(e.href) ? "seleccionado" : ""}`}><Icono nombre={e.i} /><span>{e.t}</span>{e.href === "/recordatorios" && <ContadorRecordatorios />}{e.href === "/alertas" && <AvisoAlertas />}</Link>)}</nav></div>)}</div>
+      <div className="nav-perfil"><span className="avatar">{iniciales}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{s.nombre}</p><p className="text-xs text-suave">{ROL[s.rol]}</p></div><button onClick={salir} disabled={saliendo} className="nav-salir" title="Cerrar sesión" aria-label={saliendo ? "Cerrando sesión…" : "Cerrar sesión"}><Icono nombre="salir" /></button></div>
+      {error && <p role="alert" className="px-4 pb-4 text-xs text-red-700">{error}</p>}
     </aside>
-    <header className="app-topbar"><div className="flex min-w-0 items-center gap-2 text-sm"><span className="hidden text-suave sm:inline">Espacio de trabajo</span><span className="hidden text-slate-300 sm:inline">/</span><span className="truncate font-medium">{enlaces.find(e => activo(e.href))?.t || "Detalle de tarea"}</span></div><span className="flex items-center gap-2 text-xs text-suave"><span className="h-1.5 w-1.5 rounded-full bg-acento" />{ROL[s.rol]}</span></header>
   </>;
 }

@@ -1,7 +1,13 @@
-export type NombreIcono = "inicio" | "proyectos" | "tareas" | "usuarios" | "flecha" | "buscar" | "salir" | "calendario" | "reloj" | "check" | "actualizar" | "descargar" | "campana" | "reportes" | "alerta";
+export type NombreIcono = "inicio" | "proyectos" | "tareas" | "usuarios" | "flecha" | "buscar" | "salir" | "calendario" | "reloj" | "check" | "actualizar" | "descargar" | "campana" | "reportes" | "alerta" | "documento" | "mas" | "cerrar" | "ayuda" | "editar" | "ia";
 const paths: Record<NombreIcono, string> = {
+  documento: "M4 5a2 2 0 012-2h5v18H6a2 2 0 01-2-2V5zm7-2h7a2 2 0 012 2v14a2 2 0 01-2 2h-7M15 8h2m-2 4h2",
+  mas: "M12 5v14M5 12h14",
+  cerrar: "M6 6l12 12M18 6L6 18",
+  ayuda: "M22 12a10 10 0 11-20 0 10 10 0 0120 0M9.5 9.5a2.5 2.5 0 115 0c0 1.7-2.5 2-2.5 4m0 3h.01",
+  editar: "M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4",
+  ia: "M12 3l2 7 7 2-7 2-2 7-2-7-7-2 7-2 2-7z",
   alerta: "M12 3 2 21h20L12 3zm0 6v5m0 3h.01",
-  reportes: "M14 2H5v20h14V7l-5-5zm0 0v6h5M8 12h8M8 16h6",
+  reportes: "M4 20V10m5 10V4m5 16v-7m5 7V8",
   campana: "M18 8a6 6 0 00-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4",
   actualizar: "M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0112-2l2 3M4 16l2 3a7 7 0 0012-2",
   descargar: "M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5",

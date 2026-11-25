@@ -1,7 +1,7 @@
 export const ESTADO: Record<string, { t: string; fondo: string; texto: string; punto: string }> = {
-  pendiente: { t: "Pendiente", fondo: "bg-slate-100", texto: "text-slate-700", punto: "bg-slate-400" },
-  en_curso: { t: "En curso", fondo: "bg-amber-50", texto: "text-amber-800", punto: "bg-amber-500" },
-  entregada: { t: "Entregada", fondo: "bg-emerald-50", texto: "text-emerald-800", punto: "bg-emerald-500" },
+  pendiente: { t: "Pendiente", fondo: "bg-violet-50", texto: "text-violet-800", punto: "bg-[#6250d6]" },
+  en_curso: { t: "En curso", fondo: "bg-amber-50", texto: "text-amber-800", punto: "bg-[#eb8a00]" },
+  entregada: { t: "Entregada", fondo: "bg-teal-50", texto: "text-teal-800", punto: "bg-[#0f9f85]" },
 };
 
 export function ChipEstado({ estado }: { estado: string }) {

@@ -3,7 +3,7 @@ import type { Sesion } from "./auth";
 import { MOMENTOS, type ReporteFila, type Momento } from "./reportes";
 export interface FiltrosReportes { proyecto?: number; autor?: number; tipo?: Momento; desde?: string; hasta?: string; q?: string; orden: "recientes" | "antiguos"; pagina: number }
 export interface ReporteConsulta extends ReporteFila { id_tarea: number; titulo: string; id_proyecto: number; proyecto: string }
-export interface ResultadoReportes { reportes: ReporteConsulta[]; total: number; tareas: number; autores: number; pagina: number; paginas: number }
+export interface ResultadoReportes { reportes: ReporteConsulta[]; total: number; tareas: number; autores: number; por_tipo: Partial<Record<Momento, number>>; por_dia: { dia: string; n: number }[]; pagina: number; paginas: number }
 export interface OpcionesReportes { proyectos: { id: number; nombre: string }[]; autores: { id: number; nombre: string }[] }
 export const TAMANO_PAGINA = 20;
 const claves = ["proyecto", "autor", "tipo", "desde", "hasta", "q", "orden", "pagina"];
@@ -56,13 +56,15 @@ export async function consultarReportes(s: Sesion, filtros: FiltrosReportes): Pr
   }
   valores.push((filtros.pagina - 1) * TAMANO_PAGINA);
   const orden = filtros.orden === "antiguos" ? "ASC" : "DESC";
-  const [resultado] = await query<{total:number;tareas:number;autores:number;reportes:ReporteConsulta[]}>(`WITH filtrados AS (
+  const [resultado] = await query<{total:number;tareas:number;autores:number;por_tipo:Partial<Record<Momento,number>>;por_dia:{dia:string;n:number}[];reportes:ReporteConsulta[]}>(`WITH filtrados AS (
     SELECT r.id_reporte,r.id_usuario,u.nombres||' '||u.apellidos autor,r.momento,r.contenido,r.porcentaje_avance,
            r.fecha_reporte::text fecha_reporte,to_char(r.fecha_hora,'HH24:MI') hora,r.fecha_hora,
            t.id_tarea,t.titulo,p.id_proyecto,p.nombre proyecto ${uniones} WHERE ${condiciones.join(" AND ")}
   ), pagina AS (SELECT * FROM filtrados ORDER BY fecha_hora ${orden},id_reporte ${orden} LIMIT ${TAMANO_PAGINA} OFFSET $${valores.length})
   SELECT (SELECT count(*)::int FROM filtrados) total,(SELECT count(DISTINCT id_tarea)::int FROM filtrados) tareas,
          (SELECT count(DISTINCT id_usuario)::int FROM filtrados) autores,
+         COALESCE((SELECT json_object_agg(momento,n) FROM (SELECT momento,count(*)::int n FROM filtrados GROUP BY momento) x),'{}'::json) por_tipo,
+         COALESCE((SELECT json_agg(x ORDER BY dia) FROM (SELECT fecha_reporte dia,count(*)::int n FROM filtrados GROUP BY fecha_reporte ORDER BY fecha_reporte DESC LIMIT 20) x),'[]'::json) por_dia,
          COALESCE((SELECT json_agg(to_jsonb(pagina)-'fecha_hora' ORDER BY fecha_hora ${orden},id_reporte ${orden}) FROM pagina),'[]'::json) reportes`, valores);
   return { ...resultado, pagina: filtros.pagina, paginas: Math.ceil(resultado.total / TAMANO_PAGINA) };
 }

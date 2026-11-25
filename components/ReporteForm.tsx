@@ -32,7 +32,6 @@ export default function ReporteForm({ id, seguimiento, avance }: { id: number; s
     finally { setGuardando(false); }
   }
   return <form onSubmit={enviar} className="space-y-4">
-    <p className="text-sm text-suave">Registra el inicio y el cierre de cada día. El reporte adicional se habilita cada tres días; si está pendiente, puedes completarlo después de su fecha.</p>
     {!disponible && <p role="status" className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-800">Completaste los reportes diarios de hoy. El próximo reporte adicional corresponde al {seguimiento.proximo_periodico.split("-").reverse().join("/")}.</p>}
     <fieldset disabled={guardando || !disponible} className="space-y-4 disabled:opacity-60">
       <div><label htmlFor="momento" className="etiqueta">Tipo de reporte</label>
@@ -42,7 +41,7 @@ export default function ReporteForm({ id, seguimiento, avance }: { id: number; s
         {!seguimiento.inicio_registrado && <p className="mt-1 text-xs text-suave">Para registrar el cierre, primero completa el inicio de hoy.</p>}
       </div>
       <div><label htmlFor="reporte-contenido" className="etiqueta">Detalle del avance</label><textarea id="reporte-contenido" name="contenido" rows={5} required minLength={1} maxLength={5000} className="campo" placeholder="Describe lo que vas a realizar, lo que completaste y las dificultades encontradas." /></div>
-      <div><label htmlFor="porcentaje" className="etiqueta">Porcentaje de avance de la tarea</label><div className="flex items-center gap-2"><input id="porcentaje" name="porcentaje_avance" type="number" min={0} max={100} step={1} value={porcentaje} onChange={e=>setPorcentaje(Number(e.target.value))} required className="campo max-w-32" /><span aria-hidden="true">%</span><input type="range" min={0} max={100} value={porcentaje} onChange={e=>setPorcentaje(Number(e.target.value))} aria-label="Ajustar porcentaje de avance" className="min-w-0 flex-1 accent-acento"/></div><p className="mt-1 text-xs text-suave">Indica el avance acumulado entre 0 y 100 %. El estado se actualiza automáticamente: 0 % pendiente, 1–99 % en curso y 100 % entregada.</p></div>
+      <div><label htmlFor="porcentaje" className="etiqueta">Porcentaje de avance de la tarea</label><div className="flex items-center gap-2"><input id="porcentaje" name="porcentaje_avance" type="number" min={0} max={100} step={1} value={porcentaje} onChange={e=>setPorcentaje(Number(e.target.value))} required className="campo max-w-32" /><span aria-hidden="true">%</span><input type="range" min={0} max={100} value={porcentaje} onChange={e=>setPorcentaje(Number(e.target.value))} aria-label="Ajustar porcentaje de avance" className="min-w-0 flex-1 accent-acento"/></div><p className="mt-1 text-xs text-suave">El estado se actualiza solo: 0 % pendiente, 1–99 % en curso, 100 % entregada.</p></div>
       <button type="submit" className="btn" disabled={guardando || !disponible}>{guardando ? "Guardando…" : "Guardar reporte"}</button>
     </fieldset>
     {error && <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p>}

@@ -6,7 +6,7 @@ export const ESTADOS_ALERTA=["abierta","atendida","resuelta"] as const;
 export type TipoAlerta=typeof TIPOS_ALERTA[number];
 export interface FiltrosAlertas { proyecto?:number; tipo?:TipoAlerta; estado:typeof ESTADOS_ALERTA[number]|"todas"; pagina:number }
 export interface AlertaFila { id_alerta:number;id_tarea:number;titulo:string;id_proyecto:number;proyecto:string;responsable:string;responsable_generacion:string|null;tipo:TipoAlerta;mensaje:string;estado:string;vigente:boolean;generada_en:string;accion_tomada:string|null;atendida_en:string|null;atendido_por:string|null;resuelta_en:string|null;motivo_resolucion:string|null }
-export interface ConsultaAlertas { alertas:AlertaFila[];total:number;pagina:number;paginas:number;conteos:{abierta:number;atendida:number;resuelta:number};proyectos:{id:number;nombre:string}[] }
+export interface ConsultaAlertas { alertas:AlertaFila[];total:number;pagina:number;paginas:number;conteos:{abierta:number;atendida:number;resuelta:number};por_tipo:Record<TipoAlerta,number>;proyectos:{id:number;nombre:string}[] }
 export class ErrorAlerta extends Error { constructor(mensaje:string,public status:number){super(mensaje);} }
 export function filtrosAlertas(p:URLSearchParams):FiltrosAlertas {
  for(const k of p.keys()) if(!["proyecto","tipo","estado","pagina"].includes(k)||p.getAll(k).length>1)throw new Error("Filtros de alertas no válidos");
@@ -51,6 +51,8 @@ export async function consultarAlertas(s:Sesion,f:FiltrosAlertas):Promise<Consul
   for(const r of (await c.query<{estado:keyof typeof conteos;n:number}>(`SELECT a.estado,count(*)::int n ${joins} WHERE ${condiciones.join(" AND ")} GROUP BY a.estado`,valores)).rows)conteos[r.estado]=r.n;
   if(f.estado!=="todas"){valores.push(f.estado);condiciones.push(`a.estado=$${valores.length}`);}
   const total=(await c.query<{n:number}>(`SELECT count(*)::int n ${joins} WHERE ${condiciones.join(" AND ")}`,valores)).rows[0].n;
+  const por_tipo={tarea_vencida:0,sin_actualizar:0,sin_reporte:0};
+  for(const r of (await c.query<{tipo:TipoAlerta;n:number}>(`SELECT a.tipo,count(*)::int n ${joins} WHERE ${condiciones.join(" AND ")} GROUP BY a.tipo`,valores)).rows)por_tipo[r.tipo]=r.n;
   valores.push((f.pagina-1)*20);
   const alertas=(await c.query<AlertaFila>(`SELECT a.id_alerta,a.id_tarea,t.titulo,p.id_proyecto,p.nombre proyecto,u.nombres||' '||u.apellidos responsable,
     ug.nombres||' '||ug.apellidos responsable_generacion,a.tipo,a.mensaje,a.estado,a.vigente,
@@ -59,7 +61,7 @@ export async function consultarAlertas(s:Sesion,f:FiltrosAlertas):Promise<Consul
     ${joins} JOIN usuario u ON u.id_usuario=t.id_responsable LEFT JOIN usuario ug ON ug.id_usuario=a.id_responsable_generacion LEFT JOIN usuario ua ON ua.id_usuario=a.id_atendido_por
     WHERE ${condiciones.join(" AND ")} ORDER BY a.generada_en DESC,a.id_alerta DESC LIMIT 20 OFFSET $${valores.length}`,valores)).rows;
   const proyectos=(await c.query<{id:number;nombre:string}>(`SELECT p.id_proyecto id,p.nombre FROM proyecto p WHERE ${alcanceProyecto} ORDER BY p.nombre,p.id_proyecto`,[s.id,s.rol])).rows;
-  await c.query("COMMIT");return {alertas,total,pagina:f.pagina,paginas:Math.ceil(total/20),conteos,proyectos};
+  await c.query("COMMIT");return {alertas,total,pagina:f.pagina,paginas:Math.ceil(total/20),conteos,por_tipo,proyectos};
  }catch(e){await c.query("ROLLBACK").catch(()=>{});throw e;}finally{c.release();}
 }
 export async function atenderAlerta(s:Sesion,id:number,accion:string){

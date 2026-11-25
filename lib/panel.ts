@@ -1,10 +1,10 @@
 export type TareaPanel = { id_tarea: number; titulo: string; id_proyecto: number; proyecto: string; estado: string; fecha_entrega: string; dias: number; avance: number | null };
 export const PLAZOS = [
-  { id: "vencidas", nombre: "Vencidas", corto: "Vencidas", color: "#b04a45" },
-  { id: "hoy", nombre: "Vencen hoy", corto: "Hoy", color: "#d99115" },
-  { id: "semana", nombre: "En los próximos 7 días", corto: "1–7 días", color: "#0f8b8d" },
-  { id: "quincena", nombre: "Entre 8 y 14 días", corto: "8–14 días", color: "#14406b" },
-  { id: "despues", nombre: "En 15 días o más", corto: "15+ días", color: "#8095ab" },
+  { id: "vencidas", nombre: "Vencidas", corto: "Vencidas", color: "#d03b3b" },
+  { id: "hoy", nombre: "Vencen hoy", corto: "Hoy", color: "#6250d6" },
+  { id: "semana", nombre: "En los próximos 7 días", corto: "1–7 días", color: "#6250d6" },
+  { id: "quincena", nombre: "Entre 8 y 14 días", corto: "8–14 días", color: "#6250d6" },
+  { id: "despues", nombre: "En 15 días o más", corto: "15+ días", color: "#6250d6" },
 ] as const;
 export function coincidePlazo(t: TareaPanel, plazo: string) {
   if (plazo === "todas") return true;
@@ -61,3 +61,12 @@ export function responsablesPanel(tareas: TareaSeguimiento[]) {
   }
   return [...grupos.values()].sort((a,b) => b.vencidas-a.vencidas || b.total-a.total || a.nombre.localeCompare(b.nombre,"es"));
 }
+
+/** Color de cada estado en todos los gráficos. */
+export const ESTADOS_GRAFICO = [
+  { id: "entregada", nombre: "Entregadas", color: "#0f9f85" },
+  { id: "en_curso", nombre: "En curso", color: "#eb8a00" },
+  { id: "pendiente", nombre: "Pendientes", color: "#6250d6" },
+] as const;
+export const plazosGrafico = (tareas: TareaPanel[]) => PLAZOS.map(p => ({ id: p.id as string, nombre: p.nombre as string, corto: p.corto as string, color: p.color as string, valor: tareas.filter(t => coincidePlazo(t, p.id)).length }));
+export const estadosGrafico = (tareas: { estado: string }[]) => ESTADOS_GRAFICO.map(e => ({ id: e.id as string, nombre: e.nombre as string, color: e.color as string, valor: tareas.filter(t => t.estado === e.id).length }));
