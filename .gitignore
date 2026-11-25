@@ -8,3 +8,8 @@ node_modules
 
 .local-pg/
 .local-pg.log
+
+# Configuración y secretos propios de cada equipo/entorno
+.vercel/
+.env.*
+!.env.example

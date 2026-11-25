@@ -4,6 +4,8 @@ Proyecto de Prácticas Preprofesionales II – Ingeniería de Sistemas, Universi
 
 ---
 
+> **Para retomar el proyecto:** consulta [el estado y la guía para otra PC](#continuar-el-desarrollo-desde-otra-pc), actualizados el 25 de noviembre de 2026.
+
 ## 1. ¿Qué busca este proyecto?
 
 NOAH TECH gestiona sus proyectos y tareas de forma dispersa: el estado de cada entrega se pregunta por mensajes, los reportes de avance llegan tarde y no hay un historial confiable de quién hizo qué ni cuándo. Esto provoca retrasos, tareas olvidadas y poco tiempo de reacción ante problemas.
@@ -371,9 +373,9 @@ Gerencia y jefes de área pueden descargar desde Consulta de reportes un CSV con
 
 ### Seguimiento de cambios solicitados
 
-- Campo opcional de repositorio GitHub en el registro y detalle del proyecto: implementado. Solo admite URL HTTPS de repositorios de github.com; no utiliza la API de GitHub.
+- Campo opcional de repositorio GitHub en el registro y detalle del proyecto: implementado. Solo admite URL HTTPS de repositorios de github.com; guardar el enlace no llama a GitHub. La consulta opcional de issues sí utiliza su API y se describe más abajo.
 - RF-15 (PTA, RAT y TDR): implementado en el detalle del proyecto para gerencia y el jefe responsable.
-- RF-13 y RF-14: pendientes de elección del proveedor de IA.
+- RF-13 y RF-14: integración Anthropic implementada en preparación y probada con simulación; faltan credenciales aprobadas y validación real de extremo a extremo.
 
 Para actualizar una base existente sin borrar datos, ejecuta `npm run db:migrate:github`. Para verificar con los usuarios demo, ejecuta `node --env-file=.env.local scripts/test-repositorio-github.mjs` con el servidor activo.
 
@@ -414,3 +416,137 @@ Consulta [la revisión de preparación para producción](docs/preparacion-produc
 En producción, `JWT_SECRET` es obligatorio y debe tener al menos 32 caracteres; los valores de ejemplo conocidos se rechazan. El arranque sin una clave válida falla de forma segura. La prueba aislada se ejecuta con `npm run test:secreto`.
 
 La configuración TLS se comparte entre la aplicación, migraciones y scripts. La prueba `node scripts/test-postgres-tls.mjs` requiere `openssl` y herramientas de PostgreSQL locales; crea y elimina un clúster temporal y comprueba certificado confiable, CA desconocida y nombre incorrecto.
+
+
+## Límite de intentos de acceso
+
+El inicio de sesión tiene un límite persistente de cinco intentos por correo en quince minutos. Al alcanzarlo, muestra un mensaje de espera; la API responde 429 y `Retry-After`. Un acceso válido restablece el contador si no hubo nuevas solicitudes simultáneas. Consulta las reglas y permisos del rol de servidor en [la guía de producción](docs/preparacion-produccion.md#protección-del-inicio-de-sesión).
+
+Para actualizar una base existente sin borrar datos, antes de ejecutar esta versión:
+
+```bash
+npm run db:migrate:login
+npm run test:login
+```
+
+
+## Continuar el desarrollo desde otra PC
+
+**Corte de trabajo: 25 de noviembre de 2026. Rama de desarrollo: `main`.** Lee esta sección antes de cambiar de equipo o continuar con otro agente. El avance funcional registrado es **14 de 16 requerimientos (87,5 %)**: RF-01 a RF-12, RF-15 y RF-16 implementados; RF-13 y RF-14 están preparados, pero su uso real con Anthropic sigue pendiente de validación. La protección del acceso descrita aquí es una mejora de infraestructura, no otro requerimiento funcional completado.
+
+### Qué está hecho
+
+| Área | Estado y comportamiento |
+|---|---|
+| Acceso, roles y usuarios (RF-01 a RF-03) | Inicio de sesión con bcrypt y JWT, permisos por rol, gestión de usuarios, actividad y contraseñas. |
+| Proyectos y tareas (RF-04 a RF-06) | Proyectos, miembros, asignaciones, fechas y estados con historial. |
+| Reportes y seguimiento (RF-07 a RF-11) | Inicio/cierre diarios, reportes adicionales, recordatorios, consulta filtrada, gráficos e indicadores del panel, atención e historial de alertas. |
+| Documentos (RF-12) | PDF con texto seleccionable, Word DOCX, TXT y Markdown; original en PostgreSQL, extracción, fragmentos, consulta, descarga y controles de acceso. Los escaneos requieren OCR previo. |
+| Indicadores y exportación (RF-15/RF-16) | PTA/RAT/TDR según las fórmulas documentadas; exportación CSV filtrada, con control de permisos y protección de fórmulas. |
+| GitHub | Enlace editable al repositorio del proyecto y consulta manual de issues de solo lectura; token opcional y lista autorizada para repos privados. |
+| IA (RF-13/RF-14, en preparación) | Asistente y contraste de reportes con documentos, búsqueda léxica, verificación literal de citas, persistencia e integración Anthropic; pruebas simuladas sin enviar documentos a servicios externos. |
+| Interfaz | Actualización de acceso, navegación, panel, proyectos, tareas, reportes, recordatorios, alertas, documentos y usuarios. |
+| Configuración de seguridad | Secreto JWT obligatorio en producción y comprobación de certificado/nombre TLS de PostgreSQL; sin TLS solo en localhost fuera de producción. |
+
+### Qué se hizo en la última sesión
+
+1. Se descargó y actualizó la copia local a `ab64d6d`, que traía la interfaz y el seguimiento actualizados.
+2. Se instalaron dependencias con `npm ci`, se inició PostgreSQL local y se aplicó la migración aditiva de repositorio GitHub.
+3. Se añadió `login_intento` para limitar el inicio de sesión a **cinco solicitudes por correo normalizado en quince minutos**. Se reserva cupo antes de comprobar credenciales, para que las solicitudes simultáneas no superen el límite. El contador se guarda en PostgreSQL y funciona entre instancias.
+4. Un acceso válido restablece su contador solo si no llegaron nuevas solicitudes después. Una respuesta de una ventana anterior no puede borrar el contador actual. Agotar el límite bloquea temporalmente también una contraseña correcta hasta vencer el plazo.
+5. La API responde **429**, con `Retry-After` y mensaje de espera. Si falla el servicio de acceso, responde **503** sin emitir una cookie de sesión ni mostrar detalles internos. El formulario existente muestra estos mensajes.
+6. Se guarda una clave HMAC del correo, sin almacenar el correo o la contraseña en la tabla de límites. Se eliminan hasta 100 contadores vencidos por solicitud. No se implementó un límite por IP ni una protección global de tráfico.
+7. Se añadió la migración aditiva y repetible `db/migrations/014_login_intentos.sql`, incluida también en el esquema de bases nuevas. **Esta migración de infraestructura no es el RF-14 de IA.**
+8. Se aplicó y repitió la migración únicamente en la base local, conservando los datos. Quedó documentado el permiso que necesitará un rol dedicado del servidor en otros entornos.
+9. Se añadieron y pasaron **37 verificaciones** del límite, incluidas solicitudes concurrentes, vencimiento, recuperación, entradas inválidas, acceso válido y cuentas inexistentes. Las pruebas eliminan exclusivamente su usuario y sus claves temporales.
+10. Pasaron TypeScript, las pruebas de secreto JWT y las pruebas TLS de PostgreSQL. La compilación de producción pasó en una copia temporal con configuración de verificación separada, sin conectarse a una base real. La configuración local sin TLS es rechazada deliberadamente al compilar como producción.
+
+Archivos principales de este cambio: `app/api/auth/login/route.ts`, `lib/login-limite.mjs`, `lib/login-limite.d.mts`, `db/migrations/014_login_intentos.sql`, `scripts/migrate-login.mjs` y `scripts/test-login-limite.mjs`.
+
+### Qué falta y en qué orden continuar
+
+1. **Aplicar la migración de acceso en cada base existente antes de desplegar esta versión.** Si el servidor usa un rol dedicado, necesita permisos SELECT/INSERT/UPDATE/DELETE y una política RLS exclusiva para ese rol sobre `login_intento`. No dar esos permisos a los roles públicos de Supabase. La base local usa el propietario y ya está actualizada.
+2. **Revisar el entorno real de Vercel antes de usar la dirección principal.** Se creó el proyecto `noah-gestion-pruebas` en Vercel y una base separada del mismo nombre en Supabase. El 3 de noviembre se verificaron acceso, panel y procesamiento de PDF en un Preview. La dirección principal mostró fallos porque sus variables de producción no estaban configuradas. El último intento de transferir `DATABASE_URL` y `JWT_SECRET` a producción quedó bloqueado por revisión automática y pendiente de autorización explícita del usuario para ese envío. **En esta sesión no se configuró producción ni se volvió a verificar aquel Preview; no asumir que la dirección principal funciona.**
+3. **Completar RF-13/RF-14 con una prueba real aprobada.** El proveedor elegido en el código es Anthropic. Configurar la clave y un modelo disponible, acordar el envío de fragmentos, usar documentos sintéticos, revisar respuestas y citas, costos y permisos. La simulación no valida la calidad del modelo ni completa la aceptación funcional.
+4. **Preparar operación y aceptación.** Revisar revocación de sesiones, protección global de tráfico, inicialización del primer administrador, respaldos/restauración (incluidos documentos), supervisión y pruebas con los cuatro roles. Validar las fórmulas de KPI con la organización. Detalles en [preparación para producción](docs/preparacion-produccion.md).
+5. **Mejoras posteriores, fuera del alcance actual:** OCR, búsqueda semántica/embeddings, versiones/eliminación de documentos, sincronización de issues con tareas y avisos con la aplicación cerrada. No presentarlas como funciones existentes.
+
+### Instalar una copia nueva
+
+Requisitos: **Git, Node.js 24 con npm y PostgreSQL 14 o superior**. Debe estar iniciado PostgreSQL y disponible el usuario de conexión. Los comandos siguientes son para Linux, macOS o WSL; los comandos npm son los mismos en Windows.
+
+```bash
+git clone https://github.com/DiegoDt20/noah-gestion.git
+cd noah-gestion
+git switch main
+npm ci
+cp .env.example .env.local
+```
+
+En PowerShell, el último comando es `Copy-Item .env.example .env.local`. Edita `.env.local` con los datos de **la base de ese equipo**, por ejemplo:
+
+```dotenv
+DATABASE_URL=postgresql://postgres:TU_CLAVE_LOCAL@127.0.0.1:5432/noah_demo
+DATABASE_SSL=false
+JWT_SECRET=REEMPLAZAR_POR_UN_SECRETO_ALEATORIO_PROPIO_DE_AL_MENOS_32_CARACTERES
+```
+
+El ejemplo no es una credencial real. Genera el secreto para tu archivo local con `node -e "console.log(require('node:crypto').randomBytes(48).toString('base64url'))"` y mantenlo privado. No uses ese valor en capturas, commits ni registros compartidos. `DATABASE_SSL=false` es exclusivamente para desarrollo en localhost; en un proveedor remoto usa TLS verificado y su CA cuando corresponda.
+
+**Opción A: empezar con datos de demostración nuevos.** Crea una base vacía, por ejemplo `createdb -h 127.0.0.1 -U postgres noah_demo`, y comprueba que `.env.local` apunta a ella. Solo entonces:
+
+```bash
+npm run db:setup
+npm run dev -- --port 3002
+```
+
+**`db:setup` elimina las tablas del sistema si ya existen. Úsalo únicamente en una base nueva o de demostración descartable.** El esquema nuevo ya incluye la tabla de límites y los cambios anteriores. Abre http://localhost:3002. Las cuentas demo son `admin@noahtech.pe`, `gerencia@noahtech.pe`, `jefe@noahtech.pe`, `carlos@noahtech.pe` y `maria@noahtech.pe`; la contraseña local por defecto es `Demo2026!`, salvo que se haya definido `DEMO_PASSWORD`. Estas credenciales no son las del entorno de pruebas en la nube.
+
+**Opción B: conservar los datos de otro equipo.** Git descarga código, no usuarios, proyectos ni documentos guardados en PostgreSQL. Exporta un respaldo con `pg_dump -Fc` desde el equipo de origen, transfiérelo por un medio privado y restáuralo con `pg_restore --no-owner --no-privileges` en una base vacía del equipo de destino. No ejecutes `db:setup` sobre esa base restaurada. Configura las credenciales propias del destino, comprueba la versión del esquema y aplica únicamente las migraciones que falten, después de revisar el SQL y conservar un respaldo.
+
+Para una base que ya tenía el esquema de `ab64d6d`, la migración nueva necesaria es:
+
+```bash
+npm run db:migrate:login
+npm run dev -- --port 3002
+```
+
+Migraciones anteriores disponibles: `db:migrate:rf07`, `db:migrate:rf08`, `db:migrate:rf11`, `db:migrate:rf12` y `db:migrate:github`. No asumir que una base desconocida está actualizada; comparar con los SQL en `db/migrations/`.
+
+### Si solo estás actualizando una copia existente
+
+Revisa primero `git status` y conserva tus cambios. Después, con el servidor detenido y una base respaldada:
+
+```bash
+git switch main
+git pull --ff-only origin main
+npm ci
+npm run db:migrate:login
+npm run dev -- --port 3002
+```
+
+El comando de migración usa `.env.local`: confirma su destino antes de ejecutarlo. Si faltan migraciones anteriores, revísalas y aplícalas antes de iniciar la aplicación. Conserva la terminal abierta y detén el servidor con Ctrl+C.
+
+### Comprobaciones al retomar
+
+Con la base de demostración y el servidor local activos:
+
+```bash
+npm run typecheck
+npm run test:login
+npm run test:secreto
+npm run test:postgres-tls
+```
+
+`test:login` usa por defecto http://127.0.0.1:3002. Para otro puerto, define `TEST_BASE_URL` antes de ejecutarlo. La prueba TLS requiere `openssl` y los binarios de PostgreSQL. Las pruebas de integración utilizan datos temporales: ejecútalas en una base de demostración, no en una base con datos reales. Para otros módulos están los scripts `test:rf07` a `test:rf12`, `test:ia:simulada` y los scripts adicionales de `scripts/`.
+
+Si `npm run build` rechaza `DATABASE_SSL=false`, está aplicando la regla de producción: no desactives esa protección. Prepara una configuración de compilación aislada y, para ejecutar producción, utiliza la conexión TLS y el secreto del entorno correcto.
+
+### Información que no viaja con el repositorio
+
+- `.env.local` y otros archivos de secretos, claves de IA/GitHub, contraseñas locales y certificados privados.
+- El clúster de PostgreSQL y su contenido, los respaldos y los documentos almacenados en la base.
+- `.local/`, `node_modules/`, `.next/` y `.vercel/`. En otra PC, las dependencias se instalan con `npm ci`; la vinculación de Vercel se hace solo si se va a administrar un despliegue.
+- Las cuentas y contraseñas generadas para la nube. Recuperarlas por un canal privado autorizado; no pegarlas en el README. No copiar la base o los secretos de producción a desarrollo por defecto.
+
+En este equipo se usó PostgreSQL local en `127.0.0.1:55432` y la base `noah_gestion_demo`, con un clúster privado en `.local/postgres`. **Ese puerto y esa ruta son propios de este equipo**, no un requisito para una PC nueva. Un error `ECONNREFUSED` al entrar suele indicar que PostgreSQL no está iniciado o que host/puerto de `.env.local` no corresponden al servidor disponible.

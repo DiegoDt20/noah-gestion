@@ -21,7 +21,9 @@
     "test:rf12": "node --env-file=.env.local scripts/test-rf12.mjs",
     "test:ia:simulada": "node --env-file=.env.local scripts/test-ia-simulado.mjs",
     "test:secreto": "node scripts/test-secreto-produccion.mjs",
-    "test:postgres-tls": "node scripts/test-postgres-tls.mjs"
+    "test:postgres-tls": "node scripts/test-postgres-tls.mjs",
+    "db:migrate:login": "node --env-file=.env.local scripts/migrate-login.mjs",
+    "test:login": "node --env-file=.env.local scripts/test-login-limite.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

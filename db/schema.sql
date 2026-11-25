@@ -3,7 +3,7 @@
 -- NOAH TECH SOLUTIONS S.A.C.  |  Motor: PostgreSQL 14 o superior
 -- =====================================================================
 
-DROP TABLE IF EXISTS consulta_asistente, observacion_ia, fragmento_documento, documento,
+DROP TABLE IF EXISTS login_intento, consulta_asistente, observacion_ia, fragmento_documento, documento,
                      recordatorio_lectura, alerta, reporte_avance, historial_estado, tarea,
                      proyecto_miembro, proyecto, usuario, area, rol CASCADE;
 
@@ -178,3 +178,12 @@ INSERT INTO rol (id_rol, nombre, descripcion) VALUES
  (4,'administrador','Gestiona usuarios, roles y parámetros del sistema');
 
 CREATE UNIQUE INDEX idx_documento_contenido ON documento(id_proyecto,sha256) WHERE sha256 IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS login_intento (
+    clave CHAR(64) PRIMARY KEY,
+    ventana UUID NOT NULL,
+    intentos SMALLINT NOT NULL CHECK (intentos BETWEEN 1 AND 5),
+    vence_en TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_login_intento_expira ON login_intento(vence_en);
+ALTER TABLE login_intento ENABLE ROW LEVEL SECURITY;
