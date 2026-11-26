@@ -21,12 +21,12 @@ try{
  const jefe=await login('jefe'),colaborador=await login('carlos');
  assert.equal((await post('/api/asistente',null,{proyecto,pregunta:'entrega'})).status,401);assert.equal((await post('/api/asistente',colaborador,{proyecto,pregunta:'entrega'})).status,403);assert.equal((await post('/api/asistente',jefe,{proyecto:privado,pregunta:'entrega'})).status,404);
  let a=await post('/api/asistente',jefe,{proyecto,pregunta:'entrega viernes'});assert.equal(a.status,200);assert.match(a.body.respuesta,/Cronograma\.txt · fragmento 1: La entrega será el viernes/);
- for(const palabra of ['citainventada','formatoinvalido','falloexterno','jsonnulo','bloqueinvalido','elementonulo']){a=await post('/api/asistente',jefe,{proyecto,pregunta:'entrega '+palabra});assert.equal(a.status,502);}
+ for(const palabra of ['citainventada','formatoinvalido','falloexterno','jsonnulo','bloqueinvalido','elementonulo']){a=await post('/api/asistente',jefe,{proyecto,pregunta:'entrega '+palabra});assert.equal(a.status,palabra==='falloexterno'?503:502);}
  const renombrado=await post('/api/asistente',jefe,{proyecto,pregunta:'entrega cambiarnombre'});assert.equal(renombrado.status,409,'No guarda fuentes con metadatos obsoletos');
  await db.query("UPDATE documento SET nombre='Cronograma.txt' WHERE id_documento=$1",[doc]);
  assert.equal((await post('/api/asistente',jefe,{proyecto:2147483648,pregunta:'entrega'})).status,400);
  let c=await post('/api/contrastes',jefe,{reporte:rep,documento:doc});assert.equal(c.status,200);assert.equal(c.body.diferencias.length,1);assert.match(c.body.diferencias[0],/La entrega será el viernes/);
- assert.equal((await post('/api/contrastes',jefe,{reporte:rep,documento:docPrivado})).status,404);for(const idReporte of [malo,malformado,fallo])assert.equal((await post('/api/contrastes',jefe,{reporte:idReporte,documento:doc})).status,502);
+ assert.equal((await post('/api/contrastes',jefe,{reporte:rep,documento:docPrivado})).status,404);for(const idReporte of [malo,malformado,fallo])assert.equal((await post('/api/contrastes',jefe,{reporte:idReporte,documento:doc})).status,idReporte===fallo?503:502);
 
  for(const palabra of ['jsonnulo','bloqueinvalido','elementonulo']){
   const nuevo=await reporte(palabra);assert.equal((await post('/api/contrastes',jefe,{reporte:nuevo,documento:doc})).status,502,'Respuesta inválida controlada: '+palabra);
@@ -40,6 +40,11 @@ try{
  const compatible=await reporte('sindiferencias');const sinDiferencias=await post('/api/contrastes',jefe,{reporte:compatible,documento:doc});assert.equal(sinDiferencias.status,200);assert.deepEqual(sinDiferencias.body.diferencias,[]);
  assert.equal((await post('/api/contrastes',jefe,{reporte:rep,documento:doc,extra:true})).status,400);
  assert.equal((await post('/api/contrastes',jefe,{reporte:2147483648,documento:doc})).status,400);
+
+ for(const [palabra,estado] of [['limitedeia',429],['credencialinvalida',503],['respuestacortada',502],['tiempoagotado',503]]){
+  const a=await post('/api/asistente',jefe,{proyecto,pregunta:'entrega '+palabra});assert.equal(a.status,estado);assert.equal(JSON.stringify(a.body).includes('DETALLE_PRIVADO'),false);
+  const nuevo=await reporte(palabra);const c=await post('/api/contrastes',jefe,{reporte:nuevo,documento:doc});assert.equal(c.status,estado);assert.equal(JSON.stringify(c.body).includes('DETALLE_PRIVADO'),false);
+ }
  const consultas=await db.query('SELECT respuesta FROM consulta_asistente WHERE id_proyecto=$1',[proyecto]);assert.equal(consultas.rowCount,1);assert.match(consultas.rows[0].respuesta,/Cronograma\.txt/);const obs=await db.query('SELECT id_reporte,id_documento FROM observacion_ia WHERE id_reporte=ANY($1::int[])',[[rep,malo,malformado,fallo]]);assert.equal(obs.rowCount,1);assert.equal(obs.rows[0].id_documento,doc);
  console.log('IA simulada: permisos, citas válidas e inválidas, errores del proveedor, respuestas nulas, cambios concurrentes y persistencia verificados; sin tráfico externo.');
 }finally{if(proyecto||privado){await db.query('DELETE FROM consulta_asistente WHERE id_proyecto=ANY($1::int[])',[[proyecto,privado].filter(Boolean)]);await db.query('DELETE FROM proyecto WHERE id_proyecto=ANY($1::int[])',[[proyecto,privado].filter(Boolean)]);}await db.end();if(servidor){servidor.kill('SIGTERM');await Promise.race([new Promise(resolve=>servidor.once('exit',resolve)),esperar(3000)]);if(servidor.exitCode===null)servidor.kill('SIGKILL');}rmSync(dir,{recursive:true,force:true});}

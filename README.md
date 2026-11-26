@@ -567,3 +567,37 @@ Se reforzó la integración existente antes de probarla con un proveedor real:
 **Pendiente para continuar:** `ANTHROPIC_API_KEY` no estaba configurada al iniciar esta revisión. Para la prueba real, configurarla privadamente en `.env.local`, reiniciar el servidor y aprobar el uso de documentos sintéticos y el costo de las consultas. No pegar la clave en el README ni en el chat. RF-13/RF-14 siguen pendientes de aceptación real; el avance permanece en 14/16. No se necesita una migración para estos ajustes.
 
 **Decisión del usuario (25/11/2026): continuar únicamente con simulación.** Mantener las pruebas aisladas sin llamadas a Anthropic. La configuración de una clave y la prueba real quedan pospuestas hasta que el usuario solicite habilitarlas. Las pruebas ampliadas, TypeScript y la compilación aislada pasaron.
+
+
+### IA lista para activar: configuración y comprobación (25/11/2026)
+
+La integración usa un cliente común en `lib/claude.mjs`. Envía una sola petición por acción, sin reintentos automáticos, con un máximo de 1200 tokens de salida y un plazo de 45 segundos. Ambas rutas admiten 60 segundos de ejecución. El modelo predeterminado está incluido: `claude-haiku-5-5`; `ANTHROPIC_MODEL` es opcional.
+
+Se solicitan [salidas estructuradas de Claude](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) mediante `output_config.format` y esquemas JSON para respuestas y comparaciones. Los límites de tamaño y la comprobación literal de citas siguen aplicándose en el servidor. Las respuestas truncadas, rechazos, errores de autenticación/modelo, saturación y fallos del proveedor tienen mensajes recuperables; los detalles privados del proveedor no se devuelven al navegador. Ante 429 se conserva una espera acotada en `Retry-After`.
+
+En el proyecto, los usuarios autorizados ven «IA pendiente de activación» cuando no hay clave y los controles permanecen deshabilitados. Pueden consultar el historial existente. Al guardar una consulta o comparación, se actualiza el historial automáticamente. Los campos quedan bloqueados mientras se procesa la petición.
+
+**Preparación que puede comprobarse ahora, sin clave ni llamadas externas:**
+
+```bash
+npm run check:ia
+npm run test:claude
+npm run test:ia:simulada
+```
+
+`check:ia` revisa conexión, tablas, permisos de lectura y permisos INSERT para guardar resultados, e informa si hay una clave sin mostrar su valor. No valida la clave contra Anthropic. `test:claude` comprueba el cliente con respuestas simuladas; la prueba de integración usa un servidor aislado y mantiene bloqueado el tráfico HTTP externo.
+
+**Último paso de activación, cuando el usuario decida hacerlo:** añadir únicamente la clave real a `.env.local` (sin subir este archivo):
+
+```dotenv
+ANTHROPIC_API_KEY=TU_CLAVE_PRIVADA
+```
+
+No hace falta cambiar código, instalar otro SDK ni crear tablas para activar esta integración en una base ya actualizada. Después:
+
+```bash
+npm run check:ia -- --require-key
+npm run dev -- --port 3002
+```
+
+Si el servidor ya estaba activo, detenerlo con Ctrl+C y volver a iniciarlo para cargar la variable. En Vercel, configurar `ANTHROPIC_API_KEY` como secreto en el entorno correcto y crear un despliegue nuevo. La clave debe pertenecer a una cuenta con acceso al modelo y saldo/cupo de API. El diagnóstico local no verifica esos requisitos externos; una prueba real con documentos ficticios sigue siendo necesaria para aceptar RF-13/RF-14. La decisión vigente es continuar solo con simulación; **el avance funcional permanece en 14/16** hasta esa aceptación. La preparación de Claude no resuelve los pendientes independientes de producción, respaldos, permisos de la nueva tabla de acceso ni la configuración de Vercel.

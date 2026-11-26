@@ -23,7 +23,9 @@
     "test:secreto": "node scripts/test-secreto-produccion.mjs",
     "test:postgres-tls": "node scripts/test-postgres-tls.mjs",
     "db:migrate:login": "node --env-file=.env.local scripts/migrate-login.mjs",
-    "test:login": "node --env-file=.env.local scripts/test-login-limite.mjs"
+    "test:login": "node --env-file=.env.local scripts/test-login-limite.mjs",
+    "check:ia": "node --env-file=.env.local scripts/check-ia.mjs",
+    "test:claude": "node scripts/test-claude.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

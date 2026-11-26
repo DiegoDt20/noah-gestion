@@ -1,3 +1,4 @@
+import { estadoClaude } from "@/lib/claude.mjs";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { sesionActual } from "@/lib/auth";
@@ -108,8 +109,8 @@ export default async function Proyecto({ params }: { params: Promise<{ id: strin
       {(gestiona || github || accesoIA) && <details className="herramientas"><summary><Icono nombre="ia" /><span>{accesoIA ? "GitHub y asistente de IA" : "GitHub"}</span></summary><div>
       {gestiona && <EditarRepositorio proyecto={id} actual={github} />}
       {github && <IssuesGithub proyecto={id} />}
-      {accesoIA && <AsistenteIA proyecto={id} documentos={documentosIA} />}
-      {accesoIA && <ContrasteIA reportes={reportesIA} documentos={documentosIA} />}
+      {accesoIA && <AsistenteIA disponible={estadoClaude().configurada} proyecto={id} documentos={documentosIA} />}
+      {accesoIA && <ContrasteIA disponible={estadoClaude().configurada} reportes={reportesIA} documentos={documentosIA} />}
       {accesoIA && consultasIA.length > 0 && <section className="panel mt-6"><div className="panel-cab"><h2 className="panel-tit">Consultas guardadas</h2></div><ul className="divide-y divide-linea">{consultasIA.map(c=><li key={c.id} className="p-5"><p className="text-xs text-suave">{c.fecha} · {c.documento}</p><p className="mt-2 text-sm font-semibold">{c.pregunta}</p><p className="mt-2 whitespace-pre-wrap text-sm">{c.respuesta}</p></li>)}</ul></section>}
       {accesoIA && observacionesIA.length > 0 && <section className="panel mt-6"><div className="panel-cab"><h2 className="panel-tit">Observaciones guardadas</h2></div><ul className="divide-y divide-linea">{observacionesIA.map(o=><li key={o.id} className="p-5"><p className="text-xs text-suave">{o.fecha} · {o.reporte} · {o.documento}</p><p className="mt-2 whitespace-pre-wrap text-sm">{o.diferencia}</p></li>)}</ul></section>}
       </div></details>}
