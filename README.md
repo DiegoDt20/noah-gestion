@@ -550,3 +550,20 @@ Si `npm run build` rechaza `DATABASE_SSL=false`, está aplicando la regla de pro
 - Las cuentas y contraseñas generadas para la nube. Recuperarlas por un canal privado autorizado; no pegarlas en el README. No copiar la base o los secretos de producción a desarrollo por defecto.
 
 En este equipo se usó PostgreSQL local en `127.0.0.1:55432` y la base `noah_gestion_demo`, con un clúster privado en `.local/postgres`. **Ese puerto y esa ruta son propios de este equipo**, no un requisito para una PC nueva. Un error `ECONNREFUSED` al entrar suele indicar que PostgreSQL no está iniciado o que host/puerto de `.env.local` no corresponden al servidor disponible.
+
+
+### Continuación RF-13/RF-14: validación de respuestas y fuentes (25/11/2026)
+
+Se reforzó la integración existente antes de probarla con un proveedor real:
+
+- Asistente y contraste rechazan JSON nulo, bloques de contenido inválidos y elementos nulos con un error recuperable, en lugar de fallar al acceder a propiedades inexistentes.
+- Ambas rutas rechazan identificadores fuera del rango de PostgreSQL. El contraste también rechaza campos adicionales no admitidos.
+- El contraste vuelve a comprobar permisos, el texto del reporte, el nombre del documento y todos sus fragmentos después de recibir la respuesta. La comprobación y la escritura se realizan en una transacción corta con bloqueo de las fuentes. No mantiene una transacción abierta durante la llamada externa.
+- Si las fuentes o el acceso cambiaron, responde 409 y no guarda diferencias. Esta revisión también se hace cuando el proveedor devuelve cero diferencias.
+- El asistente comprueba, al guardar, texto, pertenencia al proyecto, documento, nombre y orden de cada fragmento enviado. Si hay cambios, solicita repetir la consulta.
+- Las rutas declaran un máximo de 60 segundos para su ejecución; la llamada a Anthropic conserva un plazo interno de 45 segundos.
+- Se amplió `test:ia:simulada` para respuestas nulas, citas inválidas, cambios de reporte/documento, pérdida de acceso sin diferencias y renombrado de fuentes. La simulación no transmite documentos a Anthropic.
+
+**Pendiente para continuar:** `ANTHROPIC_API_KEY` no estaba configurada al iniciar esta revisión. Para la prueba real, configurarla privadamente en `.env.local`, reiniciar el servidor y aprobar el uso de documentos sintéticos y el costo de las consultas. No pegar la clave en el README ni en el chat. RF-13/RF-14 siguen pendientes de aceptación real; el avance permanece en 14/16. No se necesita una migración para estos ajustes.
+
+**Decisión del usuario (25/11/2026): continuar únicamente con simulación.** Mantener las pruebas aisladas sin llamadas a Anthropic. La configuración de una clave y la prueba real quedan pospuestas hasta que el usuario solicite habilitarlas. Las pruebas ampliadas, TypeScript y la compilación aislada pasaron.
